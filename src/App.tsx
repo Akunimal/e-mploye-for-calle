@@ -124,6 +124,7 @@ const App = () => {
     if (!state || initialized.current) return;
     initialized.current = true;
     applyDemoCase(0);
+    if (state.jobs[0]) setSelectedJobId(state.jobs[0].id);
   }, [state]);
 
   useEffect(() => {

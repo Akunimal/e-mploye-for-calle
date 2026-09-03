@@ -6,6 +6,8 @@ The production deployment is fake-only. It never places a real phone call, and t
 
 ## Primary video path: safe reschedule
 
+Use a desktop browser at 100% zoom. The compact desktop layout keeps the E-mploye identity, task catalog, configuration, approval boundary, and call-run panel in the first viewport; the activity log remains below for optional inspection.
+
 1. Open the public URL and point out `FAKE · NO CALLS` and `1 AI employee` in the header.
 2. Point out the three task cards: **Appointment desk**, **Lead follow-up**, and **Shift coordination**.
 3. Keep the first seeded case, **Appointment desk** for Luna Studio, with **Requests another time** selected.
@@ -49,6 +51,10 @@ Use **Reset demo** between branches so the screen stays clean.
 ## Reset before handing off
 
 Click **Reset demo** before recording the final frame so the reviewer starts from the seeded employee list and empty call history.
+
+## Video format
+
+The official rules require a public video under three minutes showing the project functioning; they do not state that narration or recorded audio is mandatory. A silent screen recording with clear English on-screen captions is acceptable in principle, but a short voiceover plus English captions is stronger for the product story. If the narration is in Spanish, include English subtitles or an English transcript because the submission materials must be in English or include an English translation.
 
 ## Controlled live verification (local only)
 
