@@ -26,7 +26,7 @@ export const resultSchema = {
   },
 };
 
-const seedState = () => ({
+const seedState = (liveEnabled = false) => ({
   version: 1,
   employees: [
     { id: "emp-ana", name: "Ana Morales", role: "Customer support", phone: "+15550101001", locale: "en-US", region: "MX" },
@@ -40,7 +40,7 @@ const seedState = () => ({
   ],
   jobs: [],
   approvals: [],
-  events: [{ id: id("evt"), type: "system", message: "E-mploye is ready in fake mode. No call has been placed.", createdAt: nowIso() }],
+  events: [{ id: id("evt"), type: "system", message: liveEnabled ? "E-mploye is ready in live mode. No call has been placed." : "E-mploye is ready in fake mode. No call has been placed.", createdAt: nowIso() }],
 });
 
 const statusForProvider = (status) => ({ queued: "queued", in_progress: "in_progress", completed: "needs_review", failed: "failed", canceled: "canceled" }[status] || "failed");
@@ -57,10 +57,19 @@ const safeResult = (value) => {
   };
 };
 
+const isIsoDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
+const isLocalTime = (value) => /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(value || ""));
+const transcriptFromProvider = (providerResponse) => {
+  if (Array.isArray(providerResponse.transcript_turns)) return providerResponse.transcript_turns;
+  return (Array.isArray(providerResponse.recipients) ? providerResponse.recipients : [])
+    .flatMap((recipient) => Array.isArray(recipient?.attempts) ? recipient.attempts : [])
+    .flatMap((attempt) => Array.isArray(attempt?.transcript_turns) ? attempt.transcript_turns : []);
+};
+
 export class CallWorkflow {
   constructor({ store, provider, config = getConfig(), clock = nowIso } = {}) {
     this.config = config;
-    this.store = store || new JsonStateStore(config.stateFile, seedState);
+    this.store = store || new JsonStateStore(config.stateFile, () => seedState(config.calleLiveEnabled));
     this.provider = provider || (config.calleLiveEnabled
       ? new CalleApiProvider({
         apiKey: config.calleApiKey,
@@ -100,7 +109,12 @@ export class CallWorkflow {
     const useTestPhone = this.config.calleLiveEnabled
       && this.config.calleTestPhone
       && (!this.config.calleTestEmployeeId || employee.id === this.config.calleTestEmployeeId);
-    return useTestPhone ? { ...employee, phone: this.config.calleTestPhone } : employee;
+    return useTestPhone ? {
+      ...employee,
+      phone: this.config.calleTestPhone,
+      ...(this.config.calleTestRegion ? { region: this.config.calleTestRegion } : {}),
+      ...(this.config.calleTestLocale ? { locale: this.config.calleTestLocale } : {}),
+    } : employee;
   }
 
   preview({ employeeId, shiftId, proposedDate, proposedTime, fakeOutcome = "confirmed" }) {
@@ -109,6 +123,8 @@ export class CallWorkflow {
     const callEmployee = this.callRecipient(employee);
     const date = proposedDate || shift.date;
     const time = proposedTime || shift.startTime;
+    if (!isIsoDate(date)) throw new Error("Proposed date must use YYYY-MM-DD");
+    if (!isLocalTime(time)) throw new Error("Proposed start must use HH:MM");
     const task = [
       `Call ${employee.name} about their ${shift.role} shift.`,
       `The proposed shift is ${date} from ${time} to ${shift.endTime}.`,
@@ -229,7 +245,7 @@ export class CallWorkflow {
       job.result = safeResult(providerResponse.structured_result);
       job.outcome = job.result.outcome;
       job.evidence = Array.isArray(providerResponse.evidence) ? providerResponse.evidence : [];
-      job.transcript = Array.isArray(providerResponse.transcript_turns) ? providerResponse.transcript_turns : [];
+      job.transcript = transcriptFromProvider(providerResponse);
       this.addEvent(state, "call_completed", `Call completed with outcome ${job.outcome}; manager review is required before changing the shift.`, job.id);
     } else if (TERMINAL_PROVIDER_STATUSES.has(providerResponse.status)) {
       job.status = statusForProvider(providerResponse.status);
@@ -253,6 +269,7 @@ export class CallWorkflow {
     if (!shift) throw new Error("Shift not found");
     if (job.outcome === "reschedule_requested") {
       if (!job.result.requested_date || !job.result.requested_time) throw new Error("The requested alternate time is incomplete");
+      if (!isIsoDate(job.result.requested_date) || !isLocalTime(job.result.requested_time)) throw new Error("The requested alternate time has an invalid format");
       shift.date = job.result.requested_date;
       shift.startTime = job.result.requested_time;
       shift.status = "rescheduled";

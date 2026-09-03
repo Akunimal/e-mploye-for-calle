@@ -30,4 +30,10 @@ describe("CALL-E API provider", () => {
     const provider = new CalleApiProvider({ apiKey: "test-key", baseUrl: "https://api.example.test", liveEnabled: false, fetchImpl: vi.fn() });
     await expect(provider.createCall({ idempotencyKey: "job-1", body: {} })).rejects.toThrow("disabled");
   });
+
+  it("preserves structured provider errors instead of rendering object text", async () => {
+    const fetchImpl = vi.fn(async () => ({ ok: false, status: 422, json: async () => ({ error: { code: "unsupported_region", message: "Unsupported destination" } }) }));
+    const provider = new CalleApiProvider({ apiKey: "test-key", baseUrl: "https://api.example.test", liveEnabled: true, fetchImpl });
+    await expect(provider.createCall({ idempotencyKey: "job-1", body: {} })).rejects.toThrow("unsupported_region");
+  });
 });

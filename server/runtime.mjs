@@ -30,4 +30,4 @@ const server = createServer(async (req, res) => {
   createReadStream(resolved).pipe(res);
 });
 
-server.listen(config.port, "0.0.0.0", () => console.log(`E-mploye production server listening on port ${config.port}`));
+server.listen(config.port, config.host, () => console.log(`E-mploye production server listening on ${config.host}:${config.port}`));

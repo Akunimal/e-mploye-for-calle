@@ -18,7 +18,7 @@ const server = createServer(async (req, res) => {
   res.end(JSON.stringify(result.body));
 });
 
-server.listen(config.port, "0.0.0.0", () => {
+server.listen(config.port, config.host, () => {
   console.log(`E-mploye API listening on http://127.0.0.1:${config.port}`);
   console.log(`Provider mode: ${config.calleLiveEnabled ? "live CALL-E" : "fake (no calls)"}`);
 });

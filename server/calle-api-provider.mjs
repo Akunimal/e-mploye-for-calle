@@ -1,5 +1,13 @@
 import { sanitizeError } from "./safety-policy.mjs";
 
+const stringifyProviderDetail = (value) => {
+  if (typeof value === "string" && value.trim()) return value;
+  if (value && typeof value === "object") {
+    try { return JSON.stringify(value); } catch { return "Provider returned an unreadable error"; }
+  }
+  return "Provider returned an empty error";
+};
+
 export class CalleApiProvider {
   constructor({ apiKey, baseUrl, liveEnabled, fetchImpl = fetch, timeoutMs = 30000 }) {
     this.name = "live";
@@ -27,7 +35,10 @@ export class CalleApiProvider {
         ...(body ? { body: JSON.stringify(body) } : {}),
       });
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload?.message || payload?.error || `CALL-E returned HTTP ${response.status}`);
+      if (!response.ok) {
+        const detail = payload?.message || payload?.error || payload?.failure_message;
+        throw new Error(detail ? stringifyProviderDetail(detail) : `CALL-E returned HTTP ${response.status}`);
+      }
       return payload;
     } catch (error) {
       throw new Error(sanitizeError(error));

@@ -134,6 +134,8 @@ describe("shift rescheduling workflow", () => {
       calleLiveEnabled: true,
       calleTestPhone: "+14155552671",
       calleTestEmployeeId: "emp-ana",
+      calleTestRegion: "US",
+      calleTestLocale: "en-US",
     };
     context.workflow.provider = {
       name: "live",
@@ -146,5 +148,30 @@ describe("shift rescheduling workflow", () => {
     await context.workflow.approve(created.jobs[0].id);
     expect(requests[0].body.recipients[0].phones).toEqual(["+14155552671"]);
     expect(context.workflow.state().employees[0].phone).toBe("+15550101001");
+    expect(context.workflow.response().runtime).toMatchObject({ region: "US", language: "en-US" });
+  });
+
+  it("reads CALL-E attempt transcripts and blocks malformed alternate times", async () => {
+    const context = make();
+    context.workflow.provider = {
+      name: "live",
+      async createCall(request) { return { id: "call_live_transcript", status: "queued", request }; },
+      async getCall(id) {
+        return {
+          id,
+          status: "completed",
+          structured_result: { outcome: "reschedule_requested", requested_date: "tomorrow", requested_time: "morning", employee_message: "Needs another time.", confidence: 0.8, needs_manager_review: true },
+          recipients: [{ attempts: [{ transcript_turns: [{ speaker: "bot", text: "Can you work it?" }, { speaker: "user", text: "Not at that time." }] }] }],
+          evidence: ["Not at that time."],
+        };
+      },
+    };
+    const created = context.workflow.createJob({ employeeId: "emp-ana", shiftId: "shift-1" });
+    const jobId = created.jobs[0].id;
+    await context.workflow.approve(jobId);
+    const reviewed = await context.workflow.refresh(jobId);
+    expect(reviewed.jobs[0].transcript).toHaveLength(2);
+    expect(() => context.workflow.apply(jobId)).toThrow("invalid format");
+    expect(() => context.workflow.preview({ employeeId: "emp-ana", shiftId: "shift-1", proposedDate: "tomorrow" })).toThrow("YYYY-MM-DD");
   });
 });

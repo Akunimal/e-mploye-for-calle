@@ -52,6 +52,8 @@ CALLE_API_KEY=your_server_side_key
 CALLE_LIVE_ENABLED=true
 CALLE_TEST_PHONE=your_authorized_e164_test_number
 CALLE_TEST_EMPLOYEE_ID=emp-ana
+CALLE_TEST_REGION=AR
+CALLE_TEST_LOCALE=es-AR
 ```
 
 Run the local server, verify the preview shows the masked test number, authorize the call once, and inspect the returned status/result before applying any scheduling change. Never commit this `.env` or put the key in frontend variables.
