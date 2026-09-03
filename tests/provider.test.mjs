@@ -1,7 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 import { CalleApiProvider } from "../server/calle-api-provider.mjs";
+import { FakeCallProvider } from "../server/fake-call-provider.mjs";
 
 describe("CALL-E API provider", () => {
+  it("returns the same fake call for a repeated idempotency key", () => {
+    let now = 1000;
+    const provider = new FakeCallProvider({ clock: () => now, queuedMs: 0, inProgressMs: 5000 });
+    const request = { idempotencyKey: "job-1", body: { metadata: { fake_outcome: "confirmed" } } };
+    const first = provider.createCall(request);
+    const second = provider.createCall(request);
+    expect(second.id).toBe(first.id);
+    now = 4500;
+    expect(provider.getCall(first.id).status).toBe("in_progress");
+  });
+
   it("constructs an authenticated idempotent create request", async () => {
     const fetchImpl = vi.fn(async (_url, init) => ({ ok: true, status: 201, json: async () => ({ id: "call_123", status: "queued" }), init }));
     const provider = new CalleApiProvider({ apiKey: "test-key", baseUrl: "https://api.example.test", liveEnabled: true, fetchImpl });

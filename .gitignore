@@ -6,3 +6,4 @@ data/*.json
 !.env.example
 *.log
 .vite/
+graphify-out/

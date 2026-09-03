@@ -40,4 +40,45 @@ describe("shift rescheduling workflow", () => {
     expect(() => workflow.apply(jobId)).toThrow("cannot be applied");
     expect(workflow.state().shifts[0].status).toBe("scheduled");
   });
+
+  it("keeps an unknown result in review and supports pre-call cancellation", async () => {
+    const { workflow } = make();
+    const created = workflow.createJob({ employeeId: "emp-ana", shiftId: "shift-1", fakeOutcome: "unknown" });
+    const jobId = created.jobs[0].id;
+    const canceled = await workflow.cancel(jobId);
+    expect(canceled.jobs[0].status).toBe("canceled");
+    expect(canceled.jobs[0].providerCallId).toBeNull();
+
+    const second = workflow.createJob({ employeeId: "emp-ana", shiftId: "shift-1", fakeOutcome: "unknown" });
+    const secondId = second.jobs[0].id;
+    await workflow.approve(secondId);
+    const reviewed = await workflow.refresh(secondId);
+    expect(reviewed.jobs[0].result.outcome).toBe("unknown");
+    expect(() => workflow.apply(secondId)).toThrow("cannot be applied");
+  });
+
+  it("retries a failed create with the same idempotency key", async () => {
+    let attempts = 0;
+    let firstKey = "";
+    const provider = {
+      name: "fake",
+      createCall(request) {
+        attempts += 1;
+        firstKey ||= request.idempotencyKey;
+        expect(request.idempotencyKey).toBe(firstKey);
+        if (attempts === 1) throw new Error("temporary provider failure");
+        return { id: "call_fake_retry", status: "queued" };
+      },
+      getCall(id) {
+        return { id, status: "completed", structured_result: { outcome: "confirmed", requested_date: "", requested_time: "", employee_message: "Confirmed.", confidence: 0.9, needs_manager_review: false }, evidence: ["Confirmed."], transcript_turns: [] };
+      },
+    };
+    const { workflow } = make();
+    workflow.provider = provider;
+    const created = workflow.createJob({ employeeId: "emp-ana", shiftId: "shift-1", fakeOutcome: "confirmed" });
+    const jobId = created.jobs[0].id;
+    expect((await workflow.approve(jobId)).jobs[0].status).toBe("failed");
+    expect((await workflow.retry(jobId)).jobs[0].providerCallId).toBe("call_fake_retry");
+    expect(attempts).toBe(2);
+  });
 });
