@@ -55,6 +55,8 @@ CALLE_DEFAULT_REGION=MX
 
 Never put `CALLE_API_KEY` or `CALLE_TEST_PHONE` in frontend variables or commit them. Before a live demo, set one controlled E.164 test number through these server-only variables, verify the destination region and locale, and keep the manager approval step enabled. The public Vercel deployment overrides these values and stays fake-only.
 
+The test number must belong to a CALL-E-supported recipient region and the region/locale must match. The current published list includes US, SG, MY, IN, AE, AU, CA, GB, VN, DE, JP, FR, MX, BR, ID, PH, and KE; Argentina (`AR`) is not currently listed. See the [CALL-E integrations guide](https://github.com/CALLE-AI/call-e-integrations#-supported-regions-and-languages) before attempting a live call.
+
 The live provider uses the CALL-E Developer API to create an asynchronous call with `POST /v1/calls`, then reads status and structured evidence with `GET /v1/calls/{call_id}`. Provider cancellation is not claimed because the current API contract does not expose a cancellation operation.
 
 ## Tests and build
