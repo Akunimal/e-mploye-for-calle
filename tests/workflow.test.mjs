@@ -194,6 +194,7 @@ describe("E-mploye workflow engine", () => {
     const requests = [];
     context.workflow.config = {
       ...context.workflow.config,
+      calleApiKey: "server-only-test-key",
       calleLiveEnabled: true,
       calleTestPhone: "+14155552671",
       calleTestEmployeeId: "emp-ana",
@@ -211,7 +212,7 @@ describe("E-mploye workflow engine", () => {
     await context.workflow.approve(created.jobs[0].id);
     expect(requests[0].body.recipients[0].phones).toEqual(["+14155552671"]);
     expect(context.workflow.state().employees[0].phone).toBe("+15550101001");
-    expect(context.workflow.response().runtime).toMatchObject({ region: "US", language: "en-US" });
+    expect(context.workflow.response().runtime).toMatchObject({ provider: "live", liveReady: true, region: "US", language: "en-US" });
   });
 
   it("reads CALL-E attempt transcripts and blocks malformed alternate times", async () => {

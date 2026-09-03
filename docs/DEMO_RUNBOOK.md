@@ -6,7 +6,7 @@ The production deployment is fake-only. It never places a real phone call, and t
 
 ## Primary video path: safe reschedule
 
-Use a desktop browser at 100% zoom. The compact desktop layout keeps the E-mploye identity, task catalog, configuration, approval boundary, and call-run panel in the first viewport; the activity log remains below for optional inspection.
+Use a desktop browser at 100% zoom. The compact desktop layout keeps the E-mploye identity, task catalog, configuration, approval boundary, and call-run panel in the first viewport; the activity log remains below for optional inspection. The **Live settings** button shows the production-ready CALL-E configuration without exposing credentials.
 
 1. Open the public URL and point out `FAKE · NO CALLS` and `1 AI employee` in the header.
 2. Point out the three task cards: **Appointment desk**, **Lead follow-up**, and **Shift coordination**.
@@ -72,3 +72,5 @@ CALLE_TEST_LOCALE=en-US
 ```
 
 Run the local server, verify the preview shows the masked test number, authorize the call once, and inspect the returned status/result before applying any scheduling change. The number must be yours or explicitly authorized and must match one of CALL-E's currently supported recipient regions; Argentina (`AR`) is not currently listed as supported. CALL-E documents international lines as primarily intended for testing and does not document buying a dashboard phone number as a prerequisite for the one-shot Calls API. Never commit this `.env` or put the key in frontend variables.
+
+The local server reports live mode as ready only when `CALLE_LIVE_ENABLED=true`, `CALLE_API_KEY` is present, and `CALLE_TEST_PHONE` is present. The dashboard's **Live settings** panel shows which of these server-side requirements are configured; it does not accept or display the secret itself.

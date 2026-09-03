@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { getConfig, publicRuntimeConfig } from "./config.mjs";
+import { getConfig, isLiveReady, publicRuntimeConfig } from "./config.mjs";
 import { CalleApiProvider } from "./calle-api-provider.mjs";
 import { FakeCallProvider } from "./fake-call-provider.mjs";
 import { JsonStateStore } from "./persistence.mjs";
@@ -84,12 +84,12 @@ const transcriptFromProvider = (providerResponse) => {
 export class CallWorkflow {
   constructor({ store, provider, config = getConfig(), clock = nowIso } = {}) {
     this.config = config;
-    this.store = store || new JsonStateStore(config.stateFile, () => seedState(config.calleLiveEnabled));
-    this.provider = provider || (config.calleLiveEnabled
+    this.store = store || new JsonStateStore(config.stateFile, () => seedState(isLiveReady(config)));
+    this.provider = provider || (isLiveReady(config)
       ? new CalleApiProvider({
         apiKey: config.calleApiKey,
         baseUrl: config.calleBaseUrl,
-        liveEnabled: config.calleLiveEnabled,
+        liveEnabled: true,
       })
       : new FakeCallProvider());
     this.clock = clock;
@@ -123,7 +123,7 @@ export class CallWorkflow {
   }
 
   callRecipient(employee) {
-    const useTestPhone = this.config.calleLiveEnabled
+    const useTestPhone = this.provider.name === "live"
       && this.config.calleTestPhone
       && (!this.config.calleTestEmployeeId || employee.id === this.config.calleTestEmployeeId);
     return useTestPhone ? {

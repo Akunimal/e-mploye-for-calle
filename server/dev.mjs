@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { getConfig } from "./config.mjs";
+import { getConfig, publicRuntimeConfig } from "./config.mjs";
 import { createApi } from "./api.mjs";
 
 const config = getConfig();
@@ -20,5 +20,7 @@ const server = createServer(async (req, res) => {
 
 server.listen(config.port, config.host, () => {
   console.log(`E-mploye API listening on http://127.0.0.1:${config.port}`);
-  console.log(`Provider mode: ${config.calleLiveEnabled ? "live CALL-E" : "fake (no calls)"}`);
+  const runtime = publicRuntimeConfig(config);
+  console.log(`Provider mode: ${runtime.provider === "live" ? "live CALL-E" : "fake (no calls)"}`);
+  if (runtime.provider === "fake" && runtime.liveRequested) console.log("Live mode requested but not ready: configure the server-only API key and test phone.");
 });

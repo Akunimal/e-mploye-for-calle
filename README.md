@@ -45,7 +45,7 @@ See [docs/DEMO_RUNBOOK.md](docs/DEMO_RUNBOOK.md) for the complete judging flow a
 
 ## Live CALL-E mode
 
-Live mode is opt-in:
+Live mode is opt-in and becomes active only when the server has all three required pieces: `CALLE_LIVE_ENABLED=true`, a `CALLE_API_KEY`, and a controlled `CALLE_TEST_PHONE`. The dashboard exposes their readiness without ever returning the secret value to the browser:
 
 ```text
 CALLE_API_KEY=your_server_side_key
@@ -59,7 +59,7 @@ CALLE_DEFAULT_LANGUAGE=en-US
 CALLE_DEFAULT_REGION=MX
 ```
 
-Never put `CALLE_API_KEY` or `CALLE_TEST_PHONE` in frontend variables or commit them. Before a live demo, set one controlled E.164 test number through these server-only variables, verify the destination region and locale, and keep the manager approval step enabled. The public Vercel deployment overrides these values and stays fake-only.
+Never put `CALLE_API_KEY` or `CALLE_TEST_PHONE` in frontend variables or commit them. Before a live demo, set one controlled E.164 test number through these server-only variables, verify the destination region and locale, and keep the manager approval step enabled. The public Vercel deployment overrides these values and stays fake-only. If any required piece is missing, the server safely falls back to the fake provider instead of claiming to be live.
 
 The test number must belong to a CALL-E-supported recipient region and the region/locale must match. Argentina (`AR`) is not currently listed. The published integration guide says that international destinations use CALL-E's international phone lines and are primarily intended for testing; buying a phone number in the dashboard is not documented as a prerequisite for the one-shot Calls API. See the [CALL-E integrations guide](https://github.com/CALLE-AI/call-e-integrations#-supported-regions-and-languages) before attempting a live call.
 

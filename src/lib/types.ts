@@ -74,6 +74,18 @@ export interface CallJob {
 
 export interface Approval { id: string; jobId: string; status: "pending" | "approved" | "rejected" | "canceled"; createdAt: string; decidedAt: string | null }
 export interface Event { id: string; type: string; message: string; createdAt: string; jobId?: string }
-export interface RuntimeConfig { provider: "fake" | "live"; liveEnabled: boolean; language: string; region: string; workflows: WorkflowTemplate[] }
+export interface RuntimeConfig {
+  provider: "fake" | "live";
+  liveEnabled: boolean;
+  liveRequested: boolean;
+  liveReady: boolean;
+  apiKeyConfigured: boolean;
+  testPhoneConfigured: boolean;
+  baseUrl: string;
+  testEmployeeId: string;
+  language: string;
+  region: string;
+  workflows: WorkflowTemplate[];
+}
 export interface AppState { version: number; employees: Employee[]; shifts: Shift[]; jobs: CallJob[]; approvals: Approval[]; events: Event[]; runtime: RuntimeConfig }
 export interface Preview { workflowType: WorkflowType; workflow: WorkflowTemplate; employee: Pick<Employee, "id" | "name" | "role" | "phone">; shift: Shift; proposedDate: string; proposedTime: string; task: string; provider: string; fakeOutcome?: FakeOutcome; safety: { ok: boolean; reason: string } }
