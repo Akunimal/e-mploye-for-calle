@@ -1,4 +1,4 @@
-import type { AppState, FakeOutcome, Preview } from "./types";
+import type { AppState, FakeOutcome, Preview, WorkflowType } from "./types";
 
 const origin = (import.meta.env.VITE_API_ORIGIN as string | undefined)?.replace(/\/+$/, "") || "";
 const endpoint = (path: string) => `${origin}/api${path}`;
@@ -21,4 +21,4 @@ export const resetState = () => post<AppState>("/reset");
 export const previewJob = (input: Record<string, unknown>) => post<Preview>("/jobs/preview", input);
 export const createJob = (input: Record<string, unknown>) => post<AppState>("/jobs", input);
 export const jobAction = (id: string, action: string) => post<AppState>(`/jobs/${encodeURIComponent(id)}/${action}`);
-export const createJobInput = (employeeId: string, shiftId: string, proposedDate: string, proposedTime: string, fakeOutcome: FakeOutcome) => ({ employeeId, shiftId, proposedDate, proposedTime, fakeOutcome });
+export const createJobInput = (employeeId: string, shiftId: string, proposedDate: string, proposedTime: string, fakeOutcome: FakeOutcome, workflowType: WorkflowType) => ({ employeeId, shiftId, proposedDate, proposedTime, fakeOutcome, workflowType });

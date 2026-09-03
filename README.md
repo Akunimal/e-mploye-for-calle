@@ -1,8 +1,14 @@
 # E-mploye for CALL-E
 
-E-mploye uses CALL-E to coordinate employee shifts through real phone conversations, converting spoken responses into structured scheduling actions.
+E-mploye is one configurable virtual employee for everyday business calls. It uses CALL-E to turn conversations into structured, reviewable actions while keeping a human responsible for every commitment.
 
-The MVP implements one vertical workflow: a manager previews a proposed shift change, explicitly authorizes a call, CALL-E asks the employee about availability, and the manager approves or rejects the resulting scheduling action.
+The prototype ships with three task templates using the same virtual employee and the same safety-first execution engine:
+
+- **Appointment desk** for service businesses: confirm or reschedule a customer appointment.
+- **Lead follow-up** for sales teams: agree a qualified follow-up time with a prospect.
+- **Shift coordination** for operations teams: confirm or renegotiate a team member's availability.
+
+The full demo path uses appointment rescheduling. The other templates are runnable through the fake provider and share the same preview → approval → call → evidence → human decision flow.
 
 ## Safety-first behavior
 
@@ -12,7 +18,7 @@ The MVP implements one vertical workflow: a manager previews a proposed shift ch
 - The CALL-E API key is server-only.
 - Stable idempotency keys prevent duplicate provider calls during retries.
 - Unknown, declined, failed, and incomplete results remain visible for human review.
-- No shift changes are applied automatically.
+- No appointment, follow-up, or shift change is applied automatically.
 - There are no hidden recurring calls.
 
 ## Run locally
@@ -27,7 +33,7 @@ npm run dev
 
 Open <http://localhost:5173>. The API runs on port 8787 and the Vite dashboard on port 5173.
 
-The default fake scenario can simulate confirmed, reschedule-requested, declined, unknown, and failed calls. Use **Reset demo** to return to the initial state.
+The default fake scenario can simulate confirmed, reschedule-requested, declined, unknown, and failed calls across all three task templates. Use **Reset demo** to return to the initial state, or use **Next case** to rotate through the two seeded demo paths.
 
 ## Public demo
 
@@ -68,11 +74,24 @@ npm run lint
 npm run build
 ```
 
+## Product model
+
+E-mploye is intentionally one role, not a collection of separate agents:
+
+```text
+E-mploye · one virtual employee
+    ├── Appointment desk
+    ├── Lead follow-up
+    └── Shift coordination
+```
+
+Each template supplies the business context, recipient language, task instruction, result interpretation, and final action. Calls, approvals, persistence, idempotency, evidence, retries, and cancellation remain shared capabilities.
+
 ## Architecture
 
 ```text
 React dashboard
-    ↓ preview / approve / refresh / apply
+    ↓ choose task / preview / approve / refresh / apply
 Node API
     ↓
 CallWorkflow + JsonStateStore
@@ -80,7 +99,7 @@ CallWorkflow + JsonStateStore
     └── CalleApiProvider (explicit live mode)
 ```
 
-The application stores employees, shifts, call jobs, provider status, structured result, evidence, transcript, approvals, and event history in a local JSON snapshot for the prototype.
+The application stores recipients, scheduled context records, task type, call jobs, provider status, structured result, evidence, transcript, approvals, and event history in a local JSON snapshot for the prototype.
 
 ## Official contribution
 
@@ -88,6 +107,6 @@ The intended community contribution is a runnable TypeScript app under `apps/typ
 
 ## Provenance and limitations
 
-E-mploye is a new application created for the CALL-E hackathon. It reuses selected author-owned ideas from an earlier prototype for persistence, safety, and interface foundations, but it is not a submission of that previous application. The CALL-E integration, phone workflow, status and result handling, safety boundaries, tests, documentation, and deployment were built for E-mploye.
+E-mploye is a new application created for the CALL-E hackathon. It reuses selected author-owned ideas from an earlier prototype for persistence, safety, and interface foundations, but it is not a submission of that previous application. The single virtual employee concept, task catalog, CALL-E integration, phone workflow, status and result handling, safety boundaries, tests, documentation, and deployment were built for E-mploye.
 
-This MVP implements shift rescheduling only. Shift confirmations, cancellations, availability checks, reminders, escalations, and production scheduling integrations are future work.
+This prototype intentionally keeps the business surface bounded: it demonstrates three repeatable workflows without pretending to be a full CRM, calendar, payroll, or workforce management system. Calendar/CRM adapters, recurring campaigns, multi-recipient escalation, reminders, and production integrations are future work.

@@ -19,7 +19,7 @@ const post = async (path, body = {}) => {
 };
 
 const jobFor = (state, id) => state.jobs.find((job) => job.id === id);
-const create = (employeeId, shiftId, fakeOutcome) => post("/api/jobs", { employeeId, shiftId, fakeOutcome });
+const create = (employeeId, shiftId, fakeOutcome, workflowType = "shift_coordination") => post("/api/jobs", { employeeId, shiftId, fakeOutcome, workflowType });
 
 const run = async () => {
   const page = await fetch(base);
@@ -29,12 +29,14 @@ const run = async () => {
   const health = (await request("/api/health")).body;
   assert.equal(health.ok, true);
   assert.equal(health.runtime.provider, "fake");
+  assert.equal(health.runtime.workflows.length, 3);
   await post("/api/reset");
 
   const preview = await post("/api/jobs/preview", { employeeId: "emp-ana", shiftId: "shift-ana-1", fakeOutcome: "reschedule_requested" });
   assert.equal(preview.safety.ok, true);
+  assert.equal(preview.workflowType, "shift_coordination");
 
-  const reschedule = await create("emp-ana", "shift-ana-1", "reschedule_requested");
+  const reschedule = await create("emp-ana", "shift-ana-1", "reschedule_requested", "appointment_management");
   const rescheduleId = reschedule.jobs[0].id;
   await post(`/api/jobs/${rescheduleId}/approve`);
   await wait(900);
@@ -44,7 +46,7 @@ const run = async () => {
   assert.equal(jobFor(rescheduleApplied, rescheduleId).status, "applied");
   assert.equal(rescheduleApplied.shifts.find((shift) => shift.id === "shift-ana-1").status, "rescheduled");
 
-  const confirmed = await create("emp-diego", "shift-diego-1", "confirmed");
+  const confirmed = await create("emp-diego", "shift-diego-1", "confirmed", "lead_follow_up");
   const confirmedId = confirmed.jobs[0].id;
   await post(`/api/jobs/${confirmedId}/approve`);
   await wait(900);

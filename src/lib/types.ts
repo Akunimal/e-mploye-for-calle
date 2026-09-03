@@ -1,11 +1,26 @@
 export type CallStatus = "awaiting_approval" | "queued" | "in_progress" | "needs_review" | "failed" | "canceled" | "applied" | "rejected";
 export type CallOutcome = "confirmed" | "reschedule_requested" | "declined" | "unknown";
 export type FakeOutcome = CallOutcome | "failed";
+export type WorkflowType = "appointment_management" | "lead_follow_up" | "shift_coordination";
+
+export interface WorkflowTemplate {
+  id: WorkflowType;
+  label: string;
+  business: string;
+  description: string;
+  recipientLabel: string;
+  recordLabel: string;
+  applyLabel: string;
+  demoEmployeeId: string;
+  demoShiftId: string;
+  demoOutcome: FakeOutcome;
+}
 
 export interface Employee {
   id: string;
   name: string;
   role: string;
+  business?: string;
   phone: string;
   locale: string;
   region: string;
@@ -25,7 +40,7 @@ export interface CallResult {
   outcome: CallOutcome;
   requested_date: string;
   requested_time: string;
-  employee_message: string;
+  contact_message: string;
   confidence: number;
   needs_manager_review: boolean;
 }
@@ -36,6 +51,7 @@ export interface CallJob {
   id: string;
   employeeId: string;
   shiftId: string;
+  workflowType: WorkflowType;
   proposedDate: string;
   proposedTime: string;
   fakeOutcome: FakeOutcome;
@@ -58,6 +74,6 @@ export interface CallJob {
 
 export interface Approval { id: string; jobId: string; status: "pending" | "approved"; createdAt: string; decidedAt: string | null }
 export interface Event { id: string; type: string; message: string; createdAt: string; jobId?: string }
-export interface RuntimeConfig { provider: "fake" | "live"; liveEnabled: boolean; language: string; region: string }
+export interface RuntimeConfig { provider: "fake" | "live"; liveEnabled: boolean; language: string; region: string; workflows: WorkflowTemplate[] }
 export interface AppState { version: number; employees: Employee[]; shifts: Shift[]; jobs: CallJob[]; approvals: Approval[]; events: Event[]; runtime: RuntimeConfig }
-export interface Preview { employee: Pick<Employee, "id" | "name" | "role" | "phone">; shift: Shift; proposedDate: string; proposedTime: string; task: string; provider: string; fakeOutcome?: FakeOutcome; safety: { ok: boolean; reason: string } }
+export interface Preview { workflowType: WorkflowType; workflow: WorkflowTemplate; employee: Pick<Employee, "id" | "name" | "role" | "phone">; shift: Shift; proposedDate: string; proposedTime: string; task: string; provider: string; fakeOutcome?: FakeOutcome; safety: { ok: boolean; reason: string } }

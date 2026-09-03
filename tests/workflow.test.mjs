@@ -15,7 +15,26 @@ const make = () => {
 };
 afterEach(() => { while (dirs.length) rmSync(dirs.pop(), { recursive: true, force: true }); });
 
-describe("shift rescheduling workflow", () => {
+describe("E-mploye workflow engine", () => {
+  it("uses one E-mploye identity across multiple business workflows", async () => {
+    for (const [workflowType, outcome, keyword] of [
+      ["appointment_management", "reschedule_requested", "appointment"],
+      ["lead_follow_up", "confirmed", "follow-up"],
+      ["shift_coordination", "declined", "shift"],
+    ]) {
+      const { workflow } = make();
+      const preview = workflow.preview({ employeeId: "emp-ana", shiftId: "shift-1", workflowType });
+      expect(preview.workflowType).toBe(workflowType);
+      expect(preview.task.toLowerCase()).toContain(keyword);
+      const created = workflow.createJob({ employeeId: "emp-ana", shiftId: "shift-1", workflowType, fakeOutcome: outcome });
+      const jobId = created.jobs[0].id;
+      expect(created.jobs[0].workflowType).toBe(workflowType);
+      await workflow.approve(jobId);
+      const reviewed = await workflow.refresh(jobId);
+      expect(reviewed.jobs[0].result.contact_message).toBeTruthy();
+    }
+  });
+
   it("requires approval, returns structured evidence, and applies a reschedule", async () => {
     const { workflow } = make();
     const created = workflow.createJob({ employeeId: "emp-ana", shiftId: "shift-1", proposedDate: "2026-09-07", proposedTime: "09:00", fakeOutcome: "reschedule_requested" });
