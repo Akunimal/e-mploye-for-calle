@@ -19,6 +19,7 @@ const post = async (path, body = {}) => {
 };
 
 const jobFor = (state, id) => state.jobs.find((job) => job.id === id);
+const approvalFor = (state, jobId) => state.approvals.find((approval) => approval.jobId === jobId);
 const create = (employeeId, shiftId, fakeOutcome, workflowType = "shift_coordination") => post("/api/jobs", { employeeId, shiftId, fakeOutcome, workflowType });
 
 const run = async () => {
@@ -36,44 +37,43 @@ const run = async () => {
   assert.equal(preview.safety.ok, true);
   assert.equal(preview.workflowType, "shift_coordination");
 
-  const reschedule = await create("emp-ana", "shift-ana-1", "reschedule_requested", "appointment_management");
-  const rescheduleId = reschedule.jobs[0].id;
-  await post(`/api/jobs/${rescheduleId}/approve`);
-  await wait(900);
-  const rescheduleReview = await post(`/api/jobs/${rescheduleId}/refresh`);
-  assert.equal(jobFor(rescheduleReview, rescheduleId).result.outcome, "reschedule_requested");
-  const rescheduleApplied = await post(`/api/jobs/${rescheduleId}/apply`);
-  assert.equal(jobFor(rescheduleApplied, rescheduleId).status, "applied");
-  assert.equal(rescheduleApplied.shifts.find((shift) => shift.id === "shift-ana-1").status, "rescheduled");
+  const matrix = [
+    ["appointment_management", "emp-ana", "shift-ana-1"],
+    ["lead_follow_up", "emp-diego", "shift-diego-1"],
+    ["shift_coordination", "emp-lucia", "shift-lucia-1"],
+  ];
+  const outcomes = ["confirmed", "reschedule_requested", "declined", "unknown"];
+  let matrixCases = 0;
+  for (const [workflowType, employeeId, shiftId] of matrix) {
+    for (const fakeOutcome of outcomes) {
+      await post("/api/reset");
+      const created = await create(employeeId, shiftId, fakeOutcome, workflowType);
+      const jobId = created.jobs[0].id;
+      await post(`/api/jobs/${jobId}/approve`);
+      await wait(900);
+      const reviewed = await post(`/api/jobs/${jobId}/refresh`);
+      const job = jobFor(reviewed, jobId);
+      assert.equal(job.workflowType, workflowType);
+      assert.equal(job.result.outcome, fakeOutcome);
+      assert.ok(job.result.contact_message);
+      if (["confirmed", "reschedule_requested"].includes(fakeOutcome)) {
+        const applied = await post(`/api/jobs/${jobId}/apply`);
+        assert.equal(jobFor(applied, jobId).status, "applied");
+        assert.equal(approvalFor(applied, jobId).status, "approved");
+        assert.equal(applied.shifts.find((shift) => shift.id === shiftId).status, fakeOutcome === "confirmed" ? "confirmed" : "rescheduled");
+      } else {
+        const blockedApply = await request(`/api/jobs/${jobId}/apply`, { method: "POST", body: "{}" });
+        assert.equal(blockedApply.response.status, 400);
+        const rejected = await post(`/api/jobs/${jobId}/reject`);
+        assert.equal(jobFor(rejected, jobId).status, "rejected");
+        assert.equal(approvalFor(rejected, jobId).status, "rejected");
+        assert.equal(rejected.shifts.find((shift) => shift.id === shiftId).status, "scheduled");
+      }
+      matrixCases += 1;
+    }
+  }
 
-  const confirmed = await create("emp-diego", "shift-diego-1", "confirmed", "lead_follow_up");
-  const confirmedId = confirmed.jobs[0].id;
-  await post(`/api/jobs/${confirmedId}/approve`);
-  await wait(900);
-  await post(`/api/jobs/${confirmedId}/refresh`);
-  const confirmedApplied = await post(`/api/jobs/${confirmedId}/apply`);
-  assert.equal(jobFor(confirmedApplied, confirmedId).status, "applied");
-  assert.equal(confirmedApplied.shifts.find((shift) => shift.id === "shift-diego-1").status, "confirmed");
-
-  const declined = await create("emp-lucia", "shift-lucia-1", "declined");
-  const declinedId = declined.jobs[0].id;
-  await post(`/api/jobs/${declinedId}/approve`);
-  await wait(900);
-  await post(`/api/jobs/${declinedId}/refresh`);
-  const declinedRejected = await post(`/api/jobs/${declinedId}/reject`);
-  assert.equal(jobFor(declinedRejected, declinedId).status, "rejected");
-  assert.equal(declinedRejected.shifts.find((shift) => shift.id === "shift-lucia-1").status, "scheduled");
-
-  const unknown = await create("emp-ana", "shift-ana-1", "unknown");
-  const unknownId = unknown.jobs[0].id;
-  await post(`/api/jobs/${unknownId}/approve`);
-  await wait(900);
-  const unknownReview = await post(`/api/jobs/${unknownId}/refresh`);
-  assert.equal(jobFor(unknownReview, unknownId).result.outcome, "unknown");
-  const blockedApply = await request(`/api/jobs/${unknownId}/apply`, { method: "POST", body: "{}" });
-  assert.equal(blockedApply.response.status, 400);
-  await post(`/api/jobs/${unknownId}/reject`);
-
+  await post("/api/reset");
   const failed = await create("emp-diego", "shift-diego-1", "failed");
   const failedId = failed.jobs[0].id;
   await post(`/api/jobs/${failedId}/approve`);
@@ -94,7 +94,7 @@ const run = async () => {
   assert.equal(canceled.shifts.find((shift) => shift.id === "shift-lucia-1").status, "scheduled");
 
   await post("/api/reset");
-  console.log(JSON.stringify({ ok: true, base, scenarios: 6, finalJobs: 0 }));
+  console.log(JSON.stringify({ ok: true, base, scenarios: matrixCases + 2, matrixCases, finalJobs: 0 }));
 };
 
 run().catch(async (error) => {

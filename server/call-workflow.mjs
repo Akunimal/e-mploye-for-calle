@@ -65,6 +65,15 @@ const safeResult = (value) => {
 
 const isIsoDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
 const isLocalTime = (value) => /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(value || ""));
+const minutesFromTime = (value) => {
+  if (!isLocalTime(value)) return null;
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+const timeFromMinutes = (value) => {
+  const normalized = value % (24 * 60);
+  return `${String(Math.floor(normalized / 60)).padStart(2, "0")}:${String(normalized % 60).padStart(2, "0")}`;
+};
 const transcriptFromProvider = (providerResponse) => {
   if (Array.isArray(providerResponse.transcript_turns)) return providerResponse.transcript_turns;
   return (Array.isArray(providerResponse.recipients) ? providerResponse.recipients : [])
@@ -239,6 +248,8 @@ export class CallWorkflow {
       job.providerCallId = providerResponse.id;
       job.providerStatus = providerResponse.status;
       job.status = statusForProvider(providerResponse.status);
+      job.failureCode = providerResponse.failure_code || null;
+      job.failureMessage = providerResponse.failure_message || null;
       job.updatedAt = this.clock();
       this.addEvent(state, "call_created", `${this.provider.name === "fake" ? "Simulated" : "Live CALL-E"} call created with status ${providerResponse.status}.`, job.id);
     } catch (error) {
@@ -290,8 +301,17 @@ export class CallWorkflow {
     if (job.outcome === "reschedule_requested") {
       if (!job.result.requested_date || !job.result.requested_time) throw new Error("The requested alternate time is incomplete");
       if (!isIsoDate(job.result.requested_date) || !isLocalTime(job.result.requested_time)) throw new Error("The requested alternate time has an invalid format");
+      const originalStart = minutesFromTime(shift.startTime);
+      const originalEnd = minutesFromTime(shift.endTime);
+      const requestedStart = minutesFromTime(job.result.requested_time);
+      const duration = originalStart !== null && originalEnd !== null && originalEnd > originalStart
+        ? originalEnd - originalStart
+        : null;
       shift.date = job.result.requested_date;
       shift.startTime = job.result.requested_time;
+      if (duration !== null && requestedStart !== null && requestedStart + duration <= 24 * 60) {
+        shift.endTime = timeFromMinutes(requestedStart + duration);
+      }
       shift.status = "rescheduled";
     } else {
       shift.status = "confirmed";
@@ -309,6 +329,8 @@ export class CallWorkflow {
     const job = state.jobs.find((item) => item.id === jobId);
     if (!job) throw new Error("Call job not found");
     if (job.status !== "needs_review") throw new Error("Only a completed result can be rejected");
+    const approval = state.approvals.find((item) => item.id === job.approvalId);
+    if (approval) { approval.status = "rejected"; approval.decidedAt = this.clock(); }
     job.status = "rejected";
     job.updatedAt = this.clock();
     this.addEvent(state, "change_rejected", `Manager rejected the proposed ${getWorkflowTemplate(job.workflowType).recordLabel.toLowerCase()} change; the scheduled item remains unchanged.`, job.id);
@@ -337,6 +359,8 @@ export class CallWorkflow {
     const job = state.jobs.find((item) => item.id === jobId);
     if (!job) throw new Error("Call job not found");
     if (job.status === "awaiting_approval") {
+      const approval = state.approvals.find((item) => item.id === job.approvalId);
+      if (approval) { approval.status = "canceled"; approval.decidedAt = this.clock(); }
       job.status = "canceled";
       this.addEvent(state, "call_canceled", "Manager canceled the preview before any call was created.", job.id);
       this.store.save();

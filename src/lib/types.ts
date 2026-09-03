@@ -72,7 +72,7 @@ export interface CallJob {
   approvalId: string;
 }
 
-export interface Approval { id: string; jobId: string; status: "pending" | "approved"; createdAt: string; decidedAt: string | null }
+export interface Approval { id: string; jobId: string; status: "pending" | "approved" | "rejected" | "canceled"; createdAt: string; decidedAt: string | null }
 export interface Event { id: string; type: string; message: string; createdAt: string; jobId?: string }
 export interface RuntimeConfig { provider: "fake" | "live"; liveEnabled: boolean; language: string; region: string; workflows: WorkflowTemplate[] }
 export interface AppState { version: number; employees: Employee[]; shifts: Shift[]; jobs: CallJob[]; approvals: Approval[]; events: Event[]; runtime: RuntimeConfig }
