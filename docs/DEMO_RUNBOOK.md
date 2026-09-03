@@ -8,7 +8,7 @@ The production deployment is fake-only. It never places a real phone call, and t
 
 Use a desktop browser at 100% zoom. The compact desktop layout keeps the E-mploye identity, task catalog, configuration, approval boundary, and call-run panel in the first viewport; the activity log remains below for optional inspection. The **Live settings** button shows the production-ready CALL-E configuration without exposing credentials.
 
-1. Open the public URL and point out `FAKE · NO CALLS` and `1 AI employee` in the header.
+1. Open the public URL and point out `FAKE · NO CALLS` and `1 AI employee` in the header. The footer clarifies that the public demo is sandboxed while the repository includes the controlled real-call path.
 2. Point out the three task cards: **Appointment desk**, **Lead follow-up**, and **Shift coordination**.
 3. Keep the first seeded case, **Appointment desk** for Luna Studio, with **Requests another time** selected.
 4. Click **Preview task**. Show the masked phone number, language/region, exact task, and `Safety checks passed`.
