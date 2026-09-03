@@ -14,10 +14,11 @@ Use a desktop browser at 100% zoom. The compact desktop layout keeps the E-mploy
 4. Click **Preview task**. Show the masked phone number, language/region, exact task, and `Safety checks passed`.
 5. Click **Create approval request**. Explain that previewing does not call anyone.
 6. Click **Authorize call**. This is the explicit manager approval boundary.
-7. Wait for the fake call to complete, or click **Refresh**. The job should reach **Result needs review**.
-8. Show the structured result, confidence, alternate date/time, transcript, and evidence.
-9. Click **Approve and apply change**. The shift should become **rescheduled** for `2026-09-08 · 10:00`.
-10. Point out the audit trail events and the human-approved success message.
+7. Point out the **CALL-E execution trace**: approval recorded, sandbox call created, status refreshed, and result received.
+8. Wait for the fake call to complete, or click **Refresh**. The job should reach **Result needs review**.
+9. Show the structured result, confidence, alternate date/time, transcript, evidence, and the trace event that brought it back.
+10. Click **Approve and apply change**. The appointment should become **rescheduled** for `2026-09-08 · 10:00–11:00`.
+11. Point out the final trace event and the human-approved success message.
 
 ## Second seeded case
 
@@ -45,6 +46,7 @@ Use **Reset demo** between branches so the screen stays clean.
 - Each call requires explicit authorization and uses a stable idempotency key.
 - Phone numbers are masked in the UI and audit trail.
 - Structured results are evidence, not automatic appointment, follow-up, or shift mutations.
+- The **CALL-E execution trace** makes the approval boundary and provider lifecycle visible during the demo.
 - Unknown, declined, and failed outcomes stay under human control.
 - The public deployment is deliberately fake-only; live CALL-E mode remains opt-in and server-side.
 

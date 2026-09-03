@@ -90,6 +90,15 @@
   .muted-note { font-size: 10px; margin-top: 8px; }
   .footer { padding: 18px 20px; }
   .panel-heading { padding-top: 14px; }
+  .call-trace { margin-top: 8px; padding: 9px; }
+  .trace-list { gap: 6px; margin-top: 7px; }
+  .trace-event { gap: 6px; }
+  .trace-event strong { font-size: 9px; }
+  .trace-event div > span { font-size: 8px; }
+  .trace-event small { font-size: 7px; }
+  .trace-flow { gap: 4px; margin: 8px 0 6px; }
+  .trace-flow span { padding: 4px 5px; font-size: 8px; }
+  .empty-trace-note { font-size: 8px; }
 }
 
 @media (min-width: 1101px) and (max-height: 1000px) {
@@ -116,6 +125,21 @@
   .task-copy { margin: 5px 0; font-size: 9px; }
   .preview-warning { display: none; }
   .job-detail { padding: 10px; }
+  .call-trace { margin-top: 6px; padding: 7px; }
+  .trace-head { gap: 6px; }
+  .trace-head strong { font-size: 10px; }
+  .trace-provider { padding: 4px 5px; font-size: 7px; }
+  .trace-list { gap: 4px; margin-top: 5px; }
+  .trace-event { grid-template-columns: 6px minmax(0, 1fr) auto; gap: 5px; }
+  .trace-dot { width: 6px; height: 6px; margin-top: 3px; }
+  .trace-event strong { font-size: 8px; }
+  .trace-event div > span { font-size: 7px; line-height: 1.25; }
+  .trace-event small { font-size: 6px; }
+  .trace-empty { margin-top: 8px !important; }
+  .trace-flow { gap: 3px; margin: 6px 0 4px; }
+  .trace-flow span { padding: 3px 4px; font-size: 7px; }
+  .trace-flow i { font-size: 8px; }
+  .empty-trace-note { font-size: 7px; }
   .job-panel { display: flex; flex-direction: column; }
   .job-panel > .empty-state { flex: 1; display: grid; place-content: center; padding: 20px; }
   .job-summary { padding-bottom: 7px; }
