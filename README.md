@@ -45,11 +45,13 @@ Live mode is opt-in:
 CALLE_API_KEY=your_server_side_key
 CALLE_LIVE_ENABLED=true
 CALLE_BASE_URL=https://api.heycall-e.com
+CALLE_TEST_PHONE=+15551234567
+CALLE_TEST_EMPLOYEE_ID=emp-ana
 CALLE_DEFAULT_LANGUAGE=en-US
 CALLE_DEFAULT_REGION=MX
 ```
 
-Never put `CALLE_API_KEY` in frontend variables or commit it. Before a live demo, use one controlled test number, verify the destination region and locale, and keep the manager approval step enabled.
+Never put `CALLE_API_KEY` or `CALLE_TEST_PHONE` in frontend variables or commit them. Before a live demo, set one controlled E.164 test number through these server-only variables, verify the destination region and locale, and keep the manager approval step enabled. The public Vercel deployment overrides these values and stays fake-only.
 
 The live provider uses the CALL-E Developer API to create an asynchronous call with `POST /v1/calls`, then reads status and structured evidence with `GET /v1/calls/{call_id}`. Provider cancellation is not claimed because the current API contract does not expose a cancellation operation.
 

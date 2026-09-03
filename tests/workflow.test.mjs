@@ -125,4 +125,26 @@ describe("shift rescheduling workflow", () => {
     expect(canceled.jobs[0].status).toBe("canceled");
     expect(canceled.shifts[0].status).toBe("scheduled");
   });
+
+  it("uses a server-only live test phone override without changing seeded data", async () => {
+    const context = make();
+    const requests = [];
+    context.workflow.config = {
+      ...context.workflow.config,
+      calleLiveEnabled: true,
+      calleTestPhone: "+14155552671",
+      calleTestEmployeeId: "emp-ana",
+    };
+    context.workflow.provider = {
+      name: "live",
+      async createCall(request) { requests.push(request); return { id: "call_live_test", status: "queued" }; },
+      async getCall(id) { return { id, status: "queued" }; },
+    };
+    const preview = context.workflow.preview({ employeeId: "emp-ana", shiftId: "shift-1" });
+    expect(preview.employee.phone).toBe("+141•••••671");
+    const created = context.workflow.createJob({ employeeId: "emp-ana", shiftId: "shift-1" });
+    await context.workflow.approve(created.jobs[0].id);
+    expect(requests[0].body.recipients[0].phones).toEqual(["+14155552671"]);
+    expect(context.workflow.state().employees[0].phone).toBe("+15550101001");
+  });
 });

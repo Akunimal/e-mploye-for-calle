@@ -10,6 +10,8 @@ const config = {
   ...baseConfig,
   calleApiKey: "",
   calleLiveEnabled: false,
+  calleTestPhone: "",
+  calleTestEmployeeId: "",
   stateFile: "/tmp/e-mploye-for-calle-state.json",
 };
 const api = createApi({ workflow: createWorkflow({ config }) });

@@ -42,3 +42,16 @@ Use **Reset demo** between branches so the screen stays clean.
 ## Reset before handing off
 
 Click **Reset demo** before recording the final frame so the reviewer starts from the seeded employee list and empty call history.
+
+## Controlled live verification (local only)
+
+The public Vercel deployment must remain fake-only. For the one live CALL-E proof, configure a local `.env` with a server-side key and one authorized E.164 test number:
+
+```text
+CALLE_API_KEY=your_server_side_key
+CALLE_LIVE_ENABLED=true
+CALLE_TEST_PHONE=your_authorized_e164_test_number
+CALLE_TEST_EMPLOYEE_ID=emp-ana
+```
+
+Run the local server, verify the preview shows the masked test number, authorize the call once, and inspect the returned status/result before applying any scheduling change. Never commit this `.env` or put the key in frontend variables.

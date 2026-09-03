@@ -96,9 +96,17 @@ export class CallWorkflow {
     return { employee, shift };
   }
 
+  callRecipient(employee) {
+    const useTestPhone = this.config.calleLiveEnabled
+      && this.config.calleTestPhone
+      && (!this.config.calleTestEmployeeId || employee.id === this.config.calleTestEmployeeId);
+    return useTestPhone ? { ...employee, phone: this.config.calleTestPhone } : employee;
+  }
+
   preview({ employeeId, shiftId, proposedDate, proposedTime, fakeOutcome = "confirmed" }) {
     const state = this.state();
     const { employee, shift } = this.findContext(state, employeeId, shiftId);
+    const callEmployee = this.callRecipient(employee);
     const date = proposedDate || shift.date;
     const time = proposedTime || shift.startTime;
     const task = [
@@ -108,9 +116,9 @@ export class CallWorkflow {
       "If they cannot, ask whether they want to suggest one alternate date and time. Do not promise or apply a schedule change.",
       "Return only the requested structured scheduling result and a concise evidence summary.",
     ].join(" ");
-    const safety = evaluateCallSafety({ employee, task, managerApproved: true, idempotencyKey: "preview", recurring: false });
+    const safety = evaluateCallSafety({ employee: callEmployee, task, managerApproved: true, idempotencyKey: "preview", recurring: false });
     return {
-      employee: { id: employee.id, name: employee.name, role: employee.role, phone: maskPhone(employee.phone) },
+      employee: { id: callEmployee.id, name: callEmployee.name, role: callEmployee.role, phone: maskPhone(callEmployee.phone) },
       shift: clone(shift),
       proposedDate: date,
       proposedTime: time,
@@ -166,20 +174,21 @@ export class CallWorkflow {
     if (job.status !== "awaiting_approval") throw new Error("Only a preview awaiting approval can be authorized");
     const employee = state.employees.find((item) => item.id === job.employeeId);
     const shift = state.shifts.find((item) => item.id === job.shiftId);
+    const callEmployee = this.callRecipient(employee);
     const approval = state.approvals.find((item) => item.id === job.approvalId);
-    const safety = evaluateCallSafety({ employee, task: job.task, managerApproved: true, idempotencyKey: job.idempotencyKey });
+    const safety = evaluateCallSafety({ employee: callEmployee, task: job.task, managerApproved: true, idempotencyKey: job.idempotencyKey });
     if (!safety.ok) throw new Error(safety.reason);
     if (approval) { approval.status = "approved"; approval.decidedAt = this.clock(); }
     job.status = "queued";
     job.updatedAt = this.clock();
-    this.addEvent(state, "call_authorized", `Manager authorized a ${this.provider.name} CALL-E call to ${maskPhone(employee.phone)}.`, job.id);
+    this.addEvent(state, "call_authorized", `Manager authorized a ${this.provider.name} CALL-E call to ${maskPhone(callEmployee.phone)}.`, job.id);
     this.store.save();
     try {
       const providerResponse = await this.provider.createCall({
         idempotencyKey: job.idempotencyKey,
         body: {
           task: job.task,
-          recipients: [{ phones: [employee.phone], region: employee.region, locale: employee.locale }],
+          recipients: [{ phones: [callEmployee.phone], region: callEmployee.region, locale: callEmployee.locale }],
           result_schema: resultSchema,
           metadata: {
             workflow_run_id: job.id,

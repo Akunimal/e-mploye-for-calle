@@ -9,6 +9,8 @@ export const getConfig = (env = process.env) => ({
   calleApiKey: env.CALLE_API_KEY || "",
   calleBaseUrl: (env.CALLE_BASE_URL || "https://api.heycall-e.com").replace(/\/+$/, ""),
   calleLiveEnabled: asBoolean(env.CALLE_LIVE_ENABLED),
+  calleTestPhone: env.CALLE_TEST_PHONE || "",
+  calleTestEmployeeId: env.CALLE_TEST_EMPLOYEE_ID || "emp-ana",
   defaultLanguage: env.CALLE_DEFAULT_LANGUAGE || "en-US",
   defaultRegion: env.CALLE_DEFAULT_REGION || "MX",
 });
