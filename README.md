@@ -35,6 +35,8 @@ The fake-only Vercel deployment is available at <https://e-mploye-for-calle.verc
 
 It never places real calls and keeps demo state in the serverless instance's temporary storage, so a cold start can restore the seeded demo data. Live CALL-E credentials are not configured in the public deployment.
 
+See [docs/DEMO_RUNBOOK.md](docs/DEMO_RUNBOOK.md) for the complete judging flow and video checklist.
+
 ## Live CALL-E mode
 
 Live mode is opt-in:

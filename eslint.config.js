@@ -6,7 +6,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["server/**/*.mjs"],
+    files: ["server/**/*.mjs", "tests/**/*.mjs"],
     languageOptions: {
       globals: {
         AbortController: "readonly",

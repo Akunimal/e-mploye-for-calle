@@ -15,7 +15,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc -b --pretty false",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:public": "node tests/public-smoke.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

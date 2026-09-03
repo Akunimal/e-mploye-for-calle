@@ -41,6 +41,29 @@ describe("shift rescheduling workflow", () => {
     expect(workflow.state().shifts[0].status).toBe("scheduled");
   });
 
+  it("applies a confirmed result without changing the shift time", async () => {
+    const { workflow } = make();
+    const created = workflow.createJob({ employeeId: "emp-ana", shiftId: "shift-1", fakeOutcome: "confirmed" });
+    const jobId = created.jobs[0].id;
+    await workflow.approve(jobId);
+    const reviewed = await workflow.refresh(jobId);
+    expect(reviewed.jobs[0].result.outcome).toBe("confirmed");
+    const applied = workflow.apply(jobId);
+    expect(applied.jobs[0].status).toBe("applied");
+    expect(applied.shifts[0]).toMatchObject({ status: "confirmed", date: "2026-09-07", startTime: "09:00" });
+  });
+
+  it("rejects a completed result and keeps the shift unchanged", async () => {
+    const { workflow } = make();
+    const created = workflow.createJob({ employeeId: "emp-ana", shiftId: "shift-1", fakeOutcome: "confirmed" });
+    const jobId = created.jobs[0].id;
+    await workflow.approve(jobId);
+    await workflow.refresh(jobId);
+    const rejected = workflow.reject(jobId);
+    expect(rejected.jobs[0].status).toBe("rejected");
+    expect(rejected.shifts[0].status).toBe("scheduled");
+  });
+
   it("keeps an unknown result in review and supports pre-call cancellation", async () => {
     const { workflow } = make();
     const created = workflow.createJob({ employeeId: "emp-ana", shiftId: "shift-1", fakeOutcome: "unknown" });
@@ -80,5 +103,26 @@ describe("shift rescheduling workflow", () => {
     expect((await workflow.approve(jobId)).jobs[0].status).toBe("failed");
     expect((await workflow.retry(jobId)).jobs[0].providerCallId).toBe("call_fake_retry");
     expect(attempts).toBe(2);
+  });
+
+  it("surfaces a fake provider failure and cancels a queued fake call", async () => {
+    const failedWorkflow = make().workflow;
+    const failedJob = failedWorkflow.createJob({ employeeId: "emp-ana", shiftId: "shift-1", fakeOutcome: "failed" });
+    const failedId = failedJob.jobs[0].id;
+    const failed = await failedWorkflow.approve(failedId);
+    expect(failed.jobs[0].status).toBe("failed");
+    const refreshedFailure = await failedWorkflow.refresh(failedId);
+    expect(refreshedFailure.jobs[0]).toMatchObject({ status: "failed", failureCode: "fake_provider_failure" });
+    expect(refreshedFailure.shifts[0].status).toBe("scheduled");
+
+    const cancelContext = make();
+    cancelContext.workflow.provider = new FakeCallProvider({ clock: () => 1000, queuedMs: 1000, inProgressMs: 5000 });
+    const queuedJob = cancelContext.workflow.createJob({ employeeId: "emp-ana", shiftId: "shift-1", fakeOutcome: "confirmed" });
+    const queuedId = queuedJob.jobs[0].id;
+    const queued = await cancelContext.workflow.approve(queuedId);
+    expect(queued.jobs[0].status).toBe("queued");
+    const canceled = await cancelContext.workflow.cancel(queuedId);
+    expect(canceled.jobs[0].status).toBe("canceled");
+    expect(canceled.shifts[0].status).toBe("scheduled");
   });
 });
