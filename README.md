@@ -29,6 +29,12 @@ Open <http://localhost:5173>. The API runs on port 8787 and the Vite dashboard o
 
 The default fake scenario can simulate confirmed, reschedule-requested, declined, unknown, and failed calls. Use **Reset demo** to return to the initial state.
 
+## Public demo
+
+The fake-only Vercel deployment is available at <https://e-mploye-for-calle.vercel.app>.
+
+It never places real calls and keeps demo state in the serverless instance's temporary storage, so a cold start can restore the seeded demo data. Live CALL-E credentials are not configured in the public deployment.
+
 ## Live CALL-E mode
 
 Live mode is opt-in:
