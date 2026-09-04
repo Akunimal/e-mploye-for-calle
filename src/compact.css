@@ -164,3 +164,79 @@
 @media (max-width: 680px) {
   .persona-chip { display: none; }
 }
+
+/* Recording layout: keep the whole demo on one viewport. The workflow and
+   evidence panels scroll internally (with the scrollbar hidden) when a call
+   adds preview, approval, trace, transcript, and result content. */
+@media (min-width: 1101px) {
+  html,
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .app-shell {
+    height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .topbar {
+    flex: 0 0 auto;
+  }
+
+  .content {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    align-content: stretch;
+  }
+
+  .content > .hero,
+  .content > .alert,
+  .content > .workflow-gallery,
+  .content > .workspace-grid {
+    grid-column: 1;
+  }
+
+  .content > .workspace-grid {
+    min-height: 0;
+    height: 100%;
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .content > .workspace-grid > .panel {
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .content > .workspace-grid > .panel::-webkit-scrollbar {
+    display: none;
+  }
+
+  .content > .workspace-grid .job-panel {
+    margin-top: 0;
+  }
+
+  .content > .lower-grid {
+    display: none;
+  }
+
+  .footer {
+    flex: 0 0 auto;
+    padding: 7px 20px 10px;
+    font-size: 8px;
+    line-height: 1.35;
+  }
+}
