@@ -16,6 +16,7 @@
     "lint": "eslint .",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
+    "test:calle": "node tests/calle-sdk-smoke.mjs",
     "test:public": "node tests/public-smoke.mjs"
   },
   "dependencies": {

@@ -62,6 +62,8 @@ The official rules require a public video under three minutes showing the projec
 
 The public Vercel deployment must remain fake-only. A real phone call is not required for the public demo: the repository proves the CALL-E integration with SDK contract tests that mock documented HTTP `201`/`200` responses and never contact a phone. If a private live proof is useful, configure a local `.env` with a server-side key and one authorized E.164 test number:
 
+The no-call evidence can be reproduced with `npm run test:calle`; it invokes the real `@call-e/calle` SDK against a local fixture and verifies the create, status, and developer-events contracts without spending credits. See [docs/CALLE_SMOKE_TEST.md](CALLE_SMOKE_TEST.md) for the recorded output and the boundary between contract verification and carrier delivery.
+
 ```text
 CALLE_API_KEY=your_server_side_key
 CALLE_LIVE_ENABLED=true

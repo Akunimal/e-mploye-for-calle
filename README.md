@@ -70,11 +70,14 @@ The live provider uses the official TypeScript server SDK `@call-e/calle` to cre
 
 ```bash
 npm test
+npm run test:calle
 npm run typecheck
 npm run lint
 npm run build
 npm run test:public
 ```
+
+`npm run test:calle` is a no-call smoke test for the official `@call-e/calle` adapter. It verifies the documented create (`201`), call status (`200`), and developer-events (`200`) contracts, authentication, idempotency, structured results, and transcript mapping with a local HTTP fixture. It never contacts a phone or spends CALL-E credits. See [docs/CALLE_SMOKE_TEST.md](docs/CALLE_SMOKE_TEST.md) for the recorded evidence and its limitations.
 
 ## Product model
 
