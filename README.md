@@ -42,6 +42,7 @@ The fake-only Vercel deployment is available at <https://e-mploye-for-calle.verc
 It never places real calls and keeps demo state in the serverless instance's temporary storage, so a cold start can restore the seeded demo data. Live CALL-E credentials are not configured in the public deployment.
 
 See [docs/DEMO_RUNBOOK.md](docs/DEMO_RUNBOOK.md) for the complete judging flow and video checklist.
+See [docs/VIDEO_SCRIPT.md](docs/VIDEO_SCRIPT.md) for a timed recording script with the exact UI actions and narration.
 See [docs/LIVE_CALL_E_SETUP.md](docs/LIVE_CALL_E_SETUP.md) for the server-only live configuration, Docker/PowerShell setup, readiness contract, and troubleshooting.
 
 ## Live CALL-E mode
@@ -72,6 +73,7 @@ npm test
 npm run typecheck
 npm run lint
 npm run build
+npm run test:public
 ```
 
 ## Product model

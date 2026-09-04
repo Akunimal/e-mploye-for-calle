@@ -46,6 +46,21 @@ describe("CALL-E API provider", () => {
     expect(result.recipients[0].attempts[0].transcript_turns[0].text).toBe("Yes.");
   });
 
+  it("reads a 200 developer-event list through the SDK", async () => {
+    const fetchImpl = vi.fn(async (request) => {
+      expect(request.url).toBe("https://api.example.test/v1/calls/call_123/events");
+      return new Response(JSON.stringify({
+        object: "list",
+        data: [{ id: "event_1", type: "call.completed", call_id: "call_123", created_at: "2026-09-04T00:01:00.000Z", level: "info", status: "completed", message: "Call completed.", details: { outcome: "confirmed" } }],
+        next_cursor: null,
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    });
+    const provider = new CalleApiProvider({ apiKey: "test-key", baseUrl: "https://api.example.test", liveEnabled: true, fetchImpl });
+    const result = await provider.getEvents("call_123");
+    expect(result).toMatchObject({ object: "list", next_cursor: null });
+    expect(result.data[0]).toMatchObject({ id: "event_1", type: "call.completed", status: "completed" });
+  });
+
   it("refuses live calls when live mode is disabled", async () => {
     const provider = new CalleApiProvider({ apiKey: "test-key", baseUrl: "https://api.example.test", liveEnabled: false, fetchImpl: vi.fn() });
     await expect(provider.createCall({ idempotencyKey: "job-1", body: {} })).rejects.toThrow("disabled");
