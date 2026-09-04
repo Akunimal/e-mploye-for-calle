@@ -83,8 +83,10 @@ const run = async () => {
   assert.equal(failedJob.status, "failed");
   assert.equal(failedJob.failureCode, "fake_provider_failure");
   const retry = await post(`/api/jobs/${failedId}/retry`);
-  assert.equal(jobFor(retry, failedId).providerCallId, failedJob.providerCallId);
+  assert.equal(jobFor(retry, failedId).status, "awaiting_approval");
+  assert.equal(jobFor(retry, failedId).providerCallId, null);
 
+  await post("/api/reset");
   const cancel = await create("emp-lucia", "shift-lucia-1", "confirmed");
   const cancelId = cancel.jobs[0].id;
   const queued = await post(`/api/jobs/${cancelId}/approve`);

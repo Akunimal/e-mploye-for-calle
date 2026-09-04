@@ -5,14 +5,14 @@
 - Independent Node.js 22+ repository.
 - React/Vite English dashboard.
 - Fake CALL-E provider by default.
-- Live direct HTTP provider behind `CALLE_LIVE_ENABLED=true`.
+- Live CALL-E provider through the official `@call-e/calle` SDK behind `CALLE_LIVE_ENABLED=true`.
 - One virtual employee identity with three task templates: appointment desk, lead follow-up, and shift coordination.
 - Recipient and scheduled context seed data using fictional reserved phone numbers.
 - Preview → manager approval → provider call → status polling → structured result → human approval/rejection for every task template.
 - Atomic JSON persistence, masked phone output, stable idempotency keys, visible failure states, safe retry, and fake cancellation.
 - Tests for persistence, safety, provider request construction, workflow transitions, and cross-template execution.
-- Repeatable two-case demo deck for judges, plus a selectable catalog of all three templates.
-- Server-only live configuration contract, readiness health fields, and an informational **Live settings** panel; the public deployment remains fake-only.
+- Repeatable three-scenario demo deck for judges, plus a selectable catalog of all three templates.
+- Server-only live configuration contract, readiness health fields, and a **Live mode setup** panel; the public deployment remains fake-only.
 
 ## Delivery work
 

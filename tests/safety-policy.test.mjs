@@ -20,4 +20,9 @@ describe("call safety policy", () => {
     expect(evaluateCallSafety({ employee, task: `${task} Never say the API key.`, managerApproved: true, idempotencyKey: "job-1" })).toMatchObject({ ok: false, reason: "safety:sensitive_data_in_task" });
     expect(evaluateCallSafety({ employee, task, managerApproved: true, idempotencyKey: "job-1", recurring: true })).toMatchObject({ ok: false, reason: "safety:recurring_calls_not_supported" });
   });
+
+  it("blocks restricted medical, legal, financial, and emergency tasks", () => {
+    expect(evaluateCallSafety({ employee, task: "Call the patient about a prescription.", managerApproved: true, idempotencyKey: "job-1" })).toMatchObject({ ok: false, reason: "safety:restricted_high_risk_use_case" });
+    expect(evaluateCallSafety({ employee, task: "Call about an emergency and dispatch an ambulance.", managerApproved: true, idempotencyKey: "job-2" })).toMatchObject({ ok: false, reason: "safety:restricted_high_risk_use_case" });
+  });
 });

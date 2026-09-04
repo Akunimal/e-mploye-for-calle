@@ -9,6 +9,13 @@ const INJECTION_PATTERNS = [
   /override\s+(?:your|all)\s+(?:rules|instructions|safety)/i,
 ];
 
+const RESTRICTED_USE_PATTERNS = [
+  /\b(?:medical|doctor|patient|diagnos(?:e|is)|treatment|prescription|healthcare)\b/i,
+  /\b(?:legal|lawyer|attorney|court|lawsuit|contract dispute)\b/i,
+  /\b(?:financial|loan|credit|investment|banking|insurance claim|payment)\b/i,
+  /\b(?:emergency|police|ambulance|fire department|911|112)\b/i,
+];
+
 export const isE164 = (value) => /^\+[1-9]\d{7,14}$/.test(String(value || ""));
 
 export const maskPhone = (value) => {
@@ -34,10 +41,11 @@ export const evaluateCallSafety = ({
   if (recurring) return block("safety:recurring_calls_not_supported");
   if (CREDENTIAL_PATTERNS.some((pattern) => pattern.test(task))) return block("safety:sensitive_data_in_task");
   if (INJECTION_PATTERNS.some((pattern) => pattern.test(task))) return block("safety:injection_like_task");
+  if (RESTRICTED_USE_PATTERNS.some((pattern) => pattern.test(task))) return block("safety:restricted_high_risk_use_case");
   return { ok: true, reason: "safety:passed" };
 };
 
 export const sanitizeError = (error) => {
-  const message = error instanceof Error ? error.message : "Unknown provider error";
+  const message = typeof error === "string" ? error : error instanceof Error ? error.message : "Unknown provider error";
   return message.replace(/\+\d{8,15}/g, "[phone masked]").slice(0, 500);
 };

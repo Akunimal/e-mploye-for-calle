@@ -10,6 +10,8 @@ export default tseslint.config(
     languageOptions: {
       globals: {
         AbortController: "readonly",
+        Request: "readonly",
+        Response: "readonly",
         URL: "readonly",
         clearTimeout: "readonly",
         console: "readonly",

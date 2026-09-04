@@ -3,7 +3,7 @@ import { getConfig, isLiveReady, publicRuntimeConfig } from "./config.mjs";
 import { CalleApiProvider } from "./calle-api-provider.mjs";
 import { FakeCallProvider } from "./fake-call-provider.mjs";
 import { JsonStateStore } from "./persistence.mjs";
-import { evaluateCallSafety, maskPhone } from "./safety-policy.mjs";
+import { evaluateCallSafety, isE164, maskPhone } from "./safety-policy.mjs";
 import { DEFAULT_WORKFLOW_TYPE, getWorkflowTemplate, publicWorkflowTemplates } from "./workflow-catalog.mjs";
 
 const OUTCOMES = ["confirmed", "reschedule_requested", "declined", "unknown"];
@@ -27,22 +27,27 @@ export const resultSchema = {
   },
 };
 
-const seedState = (liveEnabled = false) => ({
-  version: 2,
-  employees: [
+const seedState = (liveEnabled = false) => {
+  const employees = liveEnabled ? [] : [
     { id: "emp-ana", name: "Ana Morales", role: "Customer · Luna Studio", business: "Luna Studio", phone: "+15550101001", locale: "en-US", region: "MX" },
     { id: "emp-diego", name: "Diego Rivera", role: "Prospect · Norte Services", business: "Norte Services", phone: "+15550101002", locale: "en-US", region: "MX" },
     { id: "emp-lucia", name: "Lucía Torres", role: "Team member · Calle Ops", business: "Calle Ops", phone: "+15550101003", locale: "en-US", region: "MX" },
-  ],
-  shifts: [
+  ];
+  const shifts = liveEnabled ? [] : [
     { id: "shift-ana-1", employeeId: "emp-ana", date: "2026-09-07", startTime: "09:00", endTime: "10:00", role: "Service appointment", status: "scheduled" },
     { id: "shift-diego-1", employeeId: "emp-diego", date: "2026-09-08", startTime: "10:00", endTime: "11:00", role: "Discovery call", status: "scheduled" },
     { id: "shift-lucia-1", employeeId: "emp-lucia", date: "2026-09-09", startTime: "08:00", endTime: "16:00", role: "Operations shift", status: "scheduled" },
-  ],
-  jobs: [],
-  approvals: [],
-  events: [{ id: id("evt"), type: "system", message: liveEnabled ? "E-mploye is ready in live mode. No call has been placed." : "E-mploye is ready in fake mode. No call has been placed.", createdAt: nowIso() }],
-});
+  ];
+  return {
+    version: 3,
+    executionMode: liveEnabled ? "live" : "fake",
+    employees,
+    shifts,
+    jobs: [],
+    approvals: [],
+    events: [{ id: id("evt"), type: "system", message: liveEnabled ? "Live mode is ready. Load one authorized workspace before creating a call." : "E-mploye is ready in fake mode. No call has been placed.", createdAt: nowIso() }],
+  };
+};
 
 const statusForProvider = (status) => ({ queued: "queued", in_progress: "in_progress", completed: "needs_review", failed: "failed", canceled: "canceled" }[status] || "failed");
 
@@ -96,16 +101,26 @@ export class CallWorkflow {
   }
 
   state() {
-    const state = this.store.load();
+    let state = this.store.load();
+    const expectedMode = isLiveReady(this.config) ? "live" : "fake";
+    if ((expectedMode === "live" && state.executionMode !== "live") || (expectedMode === "fake" && state.executionMode === "live")) {
+      state = seedState(expectedMode === "live");
+      this.store.state = state;
+      this.store.save();
+    }
     state.jobs = state.jobs.map((job) => ({ workflowType: DEFAULT_WORKFLOW_TYPE, ...job }));
     return state;
   }
 
   response() {
     const state = this.state();
+    const publicState = clone(state);
+    if (this.provider.name === "live") {
+      publicState.employees = publicState.employees.map((employee) => ({ ...employee, phone: maskPhone(employee.phone) }));
+    }
     return {
-      ...clone(state),
-      runtime: { ...publicRuntimeConfig(this.config), workflows: publicWorkflowTemplates() },
+      ...publicState,
+      runtime: { ...publicRuntimeConfig(this.config), workflows: publicWorkflowTemplates(), workspaceConfigured: this.provider.name === "live" && state.employees.length > 0 && state.shifts.length > 0 },
     };
   }
 
@@ -123,15 +138,15 @@ export class CallWorkflow {
   }
 
   callRecipient(employee) {
-    const useTestPhone = this.provider.name === "live"
-      && this.config.calleTestPhone
-      && (!this.config.calleTestEmployeeId || employee.id === this.config.calleTestEmployeeId);
-    return useTestPhone ? {
+    if (this.provider.name !== "live") return employee;
+    if (!isLiveReady(this.config)) throw new Error("Live CALL-E is not ready; configure the server-side key, test phone, region, and locale first");
+    if (!employee || employee.phone !== this.config.calleTestPhone) throw new Error("Live mode only allows the server-configured authorized E.164 test phone");
+    return {
       ...employee,
       phone: this.config.calleTestPhone,
-      ...(this.config.calleTestRegion ? { region: this.config.calleTestRegion } : {}),
-      ...(this.config.calleTestLocale ? { locale: this.config.calleTestLocale } : {}),
-    } : employee;
+      region: this.config.calleTestRegion,
+      locale: this.config.calleTestLocale,
+    };
   }
 
   preview({ employeeId, shiftId, proposedDate, proposedTime, fakeOutcome = "confirmed", workflowType = DEFAULT_WORKFLOW_TYPE }) {
@@ -166,6 +181,54 @@ export class CallWorkflow {
       fakeOutcome: this.provider.name === "fake" ? fakeOutcome : undefined,
       safety,
     };
+  }
+
+  configureLiveWorkspace({ workflowType = DEFAULT_WORKFLOW_TYPE, name, phone, business, recordLabel, date, startTime, endTime, region, locale }) {
+    if (this.provider.name !== "live" || !isLiveReady(this.config)) throw new Error("Live CALL-E is not ready; configure the server-side key, test phone, region, and locale first");
+    const state = this.state();
+    if (state.jobs.length) throw new Error("Reset the live workspace before loading new contact data");
+
+    const workflow = getWorkflowTemplate(workflowType);
+    const contactName = String(name || "").trim();
+    const contactPhone = String(phone || "").trim();
+    const contactBusiness = String(business || "").trim();
+    const contextLabel = String(recordLabel || "").trim();
+    const contextDate = String(date || "").trim();
+    const contextStart = String(startTime || "").trim();
+    const contextEnd = String(endTime || "").trim();
+    const destinationRegion = String(region || "").trim().toUpperCase();
+    const destinationLocale = String(locale || "").trim();
+    if (!contactName || contactName.length > 120) throw new Error("Contact name is required and must be under 120 characters");
+    if (!isE164(contactPhone)) throw new Error("Live contact phone must use E.164 format");
+    if (contactPhone !== this.config.calleTestPhone) throw new Error("Live contact phone must match the server-configured authorized test phone");
+    if (!contactBusiness || contactBusiness.length > 120) throw new Error("Business name is required and must be under 120 characters");
+    if (!contextLabel || contextLabel.length > 120) throw new Error("Scheduled context label is required and must be under 120 characters");
+    if (!isIsoDate(contextDate)) throw new Error("Scheduled date must use YYYY-MM-DD");
+    if (!isLocalTime(contextStart) || !isLocalTime(contextEnd) || minutesFromTime(contextEnd) <= minutesFromTime(contextStart)) throw new Error("Scheduled times must use HH:MM and end after start");
+    if (destinationRegion !== this.config.calleTestRegion || destinationLocale !== this.config.calleTestLocale) throw new Error("Region and locale must match the server-configured CALL-E test destination");
+
+    state.executionMode = "live";
+    state.employees = [{
+      id: "live-contact",
+      name: contactName,
+      role: `${workflow.recipientLabel} · ${contactBusiness}`,
+      business: contactBusiness,
+      phone: contactPhone,
+      locale: destinationLocale,
+      region: destinationRegion,
+    }];
+    state.shifts = [{
+      id: "live-record",
+      employeeId: "live-contact",
+      date: contextDate,
+      startTime: contextStart,
+      endTime: contextEnd,
+      role: contextLabel,
+      status: "scheduled",
+    }];
+    this.addEvent(state, "live_workspace_loaded", `Live workspace loaded for ${workflow.label}; the authorized destination remains server-controlled.`, undefined);
+    this.store.save();
+    return this.response();
   }
 
   createJob(input) {
@@ -343,15 +406,27 @@ export class CallWorkflow {
     const job = state.jobs.find((item) => item.id === jobId);
     if (!job) throw new Error("Call job not found");
     if (job.status !== "failed") throw new Error("Only failed calls can be retried");
-    job.status = "queued";
+    const hadProviderCall = Boolean(job.providerCallId);
+    job.status = "awaiting_approval";
+    job.providerCallId = null;
+    job.providerStatus = null;
+    job.result = null;
+    job.outcome = null;
+    job.evidence = [];
+    job.transcript = [];
     job.failureCode = null;
     job.failureMessage = null;
-    this.addEvent(state, "call_retrying", "Retrying with the same idempotency key to prevent duplicate provider calls.", job.id);
+    if (hadProviderCall) job.idempotencyKey = `employe_${job.id}_${crypto.randomBytes(3).toString("hex")}`;
+    const previousApproval = state.approvals.find((item) => item.id === job.approvalId);
+    if (previousApproval) previousApproval.decidedAt = previousApproval.decidedAt || this.clock();
+    const nextApprovalId = id("approval");
+    job.approvalId = nextApprovalId;
+    state.approvals.unshift({ id: nextApprovalId, jobId, status: "pending", createdAt: this.clock(), decidedAt: null });
+    this.addEvent(state, "call_retrying", hadProviderCall
+      ? "A terminal provider failure requires a new approval and a fresh idempotency key."
+      : "The failed request is ready for a new approval using the same idempotency key.", job.id);
     this.store.save();
-    if (job.providerCallId) return this.refresh(jobId);
-    job.status = "awaiting_approval";
-    this.store.save();
-    return this.approve(jobId);
+    return this.response();
   }
 
   async cancel(jobId) {

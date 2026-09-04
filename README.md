@@ -8,7 +8,7 @@ The prototype ships with three task templates using the same virtual employee an
 - **Lead follow-up** for sales teams: agree a qualified follow-up time with a prospect.
 - **Shift coordination** for operations teams: confirm or renegotiate a team member's availability.
 
-The full demo path uses appointment rescheduling. The other templates are runnable through the fake provider and share the same preview → approval → call → evidence → human decision flow.
+The public demo offers three guided scenarios. All templates share the same preview → approval → call → evidence → human decision flow.
 
 ## Safety-first behavior
 
@@ -33,7 +33,7 @@ npm run dev
 
 Open <http://localhost:5173>. The API runs on port 8787 and the Vite dashboard on port 5173.
 
-The default fake scenario can simulate confirmed, reschedule-requested, declined, unknown, and failed calls across all three task templates. Use **Reset demo** to return to the initial state, or use **Next case** to rotate through the two seeded demo paths.
+The default fake scenario can simulate confirmed, reschedule-requested, declined, unknown, and failed calls across all three task templates. Use **Reset demo** to return to the initial state, or choose any of the three prepared scenarios from the dashboard.
 
 ## Public demo
 
@@ -46,25 +46,24 @@ See [docs/LIVE_CALL_E_SETUP.md](docs/LIVE_CALL_E_SETUP.md) for the server-only l
 
 ## Live CALL-E mode
 
-Live mode is opt-in and becomes active only when the server has all three required pieces: `CALLE_LIVE_ENABLED=true`, a `CALLE_API_KEY`, and a controlled `CALLE_TEST_PHONE`. The dashboard exposes their readiness without ever returning the secret value to the browser:
+Live mode is opt-in and becomes active only when the server has the required flag, key, authorized E.164 phone, destination region, and locale. The dashboard exposes readiness without ever returning the secret value to the browser. Live mode starts with no seeded contacts: the operator must load one explicit contact and one scheduled context before previewing a call.
 
 ```text
 CALLE_API_KEY=your_server_side_key
 CALLE_LIVE_ENABLED=true
 CALLE_BASE_URL=https://api.heycall-e.com
 CALLE_TEST_PHONE=+15551234567
-CALLE_TEST_EMPLOYEE_ID=emp-ana
 CALLE_TEST_REGION=US
 CALLE_TEST_LOCALE=en-US
 CALLE_DEFAULT_LANGUAGE=en-US
 CALLE_DEFAULT_REGION=MX
 ```
 
-Never put `CALLE_API_KEY` or `CALLE_TEST_PHONE` in frontend variables or commit them. Before a live demo, set one controlled E.164 test number through these server-only variables, verify the destination region and locale, and keep the manager approval step enabled. The public Vercel deployment overrides these values and stays fake-only. If any required piece is missing, the server safely falls back to the fake provider instead of claiming to be live.
+Never put `CALLE_API_KEY` or `CALLE_TEST_PHONE` in frontend variables or commit them. Before a live run, set one controlled E.164 test number through these server-only variables, verify the destination region and locale, and keep the manager approval step enabled. The public Vercel deployment overrides these values and stays fake-only. If any required piece is missing, the server safely falls back to the fake provider instead of claiming to be live.
 
 The test number must belong to a CALL-E-supported recipient region and the region/locale must match. Argentina (`AR`) is not currently listed. The published integration guide says that international destinations use CALL-E's international phone lines and are primarily intended for testing; buying a phone number in the dashboard is not documented as a prerequisite for the one-shot Calls API. See the [CALL-E integrations guide](https://github.com/CALLE-AI/call-e-integrations#-supported-regions-and-languages) before attempting a live call.
 
-The live provider uses the CALL-E Developer API to create an asynchronous call with `POST /v1/calls`, then reads status and structured evidence with `GET /v1/calls/{call_id}`. Provider cancellation is not claimed because the current API contract does not expose a cancellation operation.
+The live provider uses the official TypeScript server SDK `@call-e/calle` to create an asynchronous CALL-E task and read status, structured evidence, transcripts, and developer events. The SDK maps the documented `POST /v1/calls`, `GET /v1/calls/{call_id}`, and events contracts while preserving the stable idempotency key. Provider cancellation is not claimed because the current SDK/API contract does not expose a cancellation operation. The provider tests use mocked HTTP `201`/`200` responses to verify the SDK contract without placing a call.
 
 ## Tests and build
 
@@ -97,7 +96,7 @@ Node API
     ↓
 CallWorkflow + JsonStateStore
     ├── FakeCallProvider (default)
-    └── CalleApiProvider (explicit live mode)
+    └── CalleApiProvider → @call-e/calle (explicit live mode)
 ```
 
 The application stores recipients, scheduled context records, task type, call jobs, provider status, structured result, evidence, transcript, approvals, and event history in a local JSON snapshot for the prototype.

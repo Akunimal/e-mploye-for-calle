@@ -18,6 +18,7 @@ const post = <T>(path: string, body: Record<string, unknown> = {}) => request<T>
 
 export const getState = () => request<AppState>("/state");
 export const resetState = () => post<AppState>("/reset");
+export const configureLiveWorkspace = (input: Record<string, unknown>) => post<AppState>("/live/workspace", input);
 export const previewJob = (input: Record<string, unknown>) => post<Preview>("/jobs/preview", input);
 export const createJob = (input: Record<string, unknown>) => post<AppState>("/jobs", input);
 export const jobAction = (id: string, action: string) => post<AppState>(`/jobs/${encodeURIComponent(id)}/${action}`);

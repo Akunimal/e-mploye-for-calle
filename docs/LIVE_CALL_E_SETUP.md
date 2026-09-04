@@ -11,15 +11,17 @@ The public Vercel deployment is intentionally hard-coded to sandbox mode. This p
 
 ## Live readiness contract
 
-The live provider is selected only when all three conditions are true on the server:
+The live provider is selected only when all five conditions are true on the server:
 
 1. `CALLE_LIVE_ENABLED=true` explicitly opts into live execution.
 2. `CALLE_API_KEY` contains a server-side CALL-E API key.
 3. `CALLE_TEST_PHONE` is a valid E.164 number (`+` followed by 8–15 digits) that belongs to you or is explicitly authorized for testing.
+4. `CALLE_TEST_REGION` is an explicit supported destination region.
+5. `CALLE_TEST_LOCALE` is an explicit locale matching that region.
 
 If any condition is missing, E-mploye safely uses `FakeCallProvider`, reports `FAKE · NO CALLS`, and does not claim that a live call is available. A configured key is never returned to the browser; the dashboard exposes only boolean readiness indicators.
 
-The live target can be restricted to one seeded contact with `CALLE_TEST_EMPLOYEE_ID`. The selected test phone replaces that contact only on the server and is masked in previews and events.
+When live mode is ready, the persisted workspace starts empty by design. The operator must load one contact and one scheduled context from the **Live mode setup** panel before an approval can be created. The contact phone must exactly match the server-authorized `CALLE_TEST_PHONE`; the full number stays server-side and is masked in previews, responses, and events.
 
 ## Environment variables
 
@@ -31,9 +33,8 @@ All variables below are server-only. Use a local `.env`, a private deployment se
 | `CALLE_LIVE_ENABLED` | Yes | Must be `true`, `1`, or `yes`; this is the explicit safety opt-in. |
 | `CALLE_TEST_PHONE` | Yes | Authorized E.164 destination used for controlled testing. |
 | `CALLE_BASE_URL` | No | CALL-E API origin; defaults to `https://api.heycall-e.com`. |
-| `CALLE_TEST_EMPLOYEE_ID` | No | Seeded employee allowed to use the test phone; defaults to `emp-ana`. |
-| `CALLE_TEST_REGION` | Recommended | Destination region sent to CALL-E, for example `US`. |
-| `CALLE_TEST_LOCALE` | Recommended | Destination locale sent to CALL-E, for example `en-US`. |
+| `CALLE_TEST_REGION` | Yes | Destination region sent to CALL-E, for example `US`. |
+| `CALLE_TEST_LOCALE` | Yes | Destination locale sent to CALL-E, for example `en-US`. |
 | `CALLE_DEFAULT_LANGUAGE` | No | Fallback language when no test locale is set. |
 | `CALLE_DEFAULT_REGION` | No | Fallback region when no test region is set. |
 | `EMPLOYE_PORT` | No | Node API port; defaults to `8787`. |
@@ -57,7 +58,6 @@ $secureKey = Read-Host 'CALL-E API key (entrada oculta)' -AsSecureString
 $env:CALLE_API_KEY = (New-Object System.Net.NetworkCredential('', $secureKey)).Password
 $env:CALLE_LIVE_ENABLED = 'true'
 $env:CALLE_TEST_PHONE = '+15551234567'
-$env:CALLE_TEST_EMPLOYEE_ID = 'emp-ana'
 $env:CALLE_TEST_REGION = 'US'
 $env:CALLE_TEST_LOCALE = 'en-US'
 npm run dev
@@ -78,16 +78,17 @@ The container serves the built dashboard and API on `http://localhost:8787`. For
 
 ## Dashboard verification
 
-1. Open the local or private dashboard and select **Live settings**.
-2. Confirm that **API key** is `Configured · server only` and **Test phone** is `Configured · masked`.
-3. Confirm **Live CALL-E** says `Ready` and the header says `LIVE CALL-E`.
-4. Click **Preview task** and verify the destination is masked, the region/locale are correct, and the exact task says not to promise or apply a change.
-5. Click **Create approval request**. This does not call anyone.
-6. Confirm the explicit **Authorize call** boundary, then authorize only the controlled test once.
-7. Follow **CALL-E EXECUTION TRACE**: authorization → provider call → status/result → human review.
-8. Inspect the returned status, structured result, transcript, and evidence. Apply a scheduling change only after checking the result.
+1. Open the local or private dashboard and select **Live mode setup**.
+2. Confirm that **API key** is `Configured · server only`, the authorized phone is masked, and region/locale are ready.
+3. Load one contact and one scheduled context. The form rejects a phone that does not exactly match the server-authorized E.164 destination.
+4. Confirm **Live CALL-E** says `Ready` and the header says `LIVE CALL-E`.
+5. Click **Preview task** and verify the destination is masked, the region/locale are correct, and the exact task says not to promise or apply a change.
+6. Click **Request approval**. This does not call anyone.
+7. Confirm the explicit **Authorize call** boundary, then authorize only the controlled test once.
+8. Follow **CALL-E EXECUTION TRACE**: authorization → provider task → status/result → human review.
+9. Inspect the returned status, structured result, transcript, and evidence. Apply a scheduling change only after checking the result.
 
-The **Live settings** panel is intentionally informational. It does not accept API keys and cannot switch a server from fake to live from the browser. That decision stays in server configuration and requires the explicit flag.
+The **Live mode setup** panel intentionally accepts workspace data, not credentials. It cannot switch a server from fake to live from the browser: the API key, explicit flag, authorized phone, region, and locale stay in server configuration. Loading the workspace only prepares one controlled target; the manager approval still gates the actual provider request.
 
 ## Health and troubleshooting
 
@@ -104,13 +105,15 @@ Useful fields under `runtime` are:
 - `liveReady`: whether all required server-side values are valid and present.
 - `apiKeyConfigured`: only a boolean; the key itself is never returned.
 - `testPhoneConfigured`: only a boolean indicating a valid E.164 test phone.
+- `testRegionConfigured` and `testLocaleConfigured`: only booleans for the configured destination contract.
+- `workspaceConfigured`: whether the live workspace has been loaded into the current persisted state.
 
 Common outcomes:
 
 | Symptom | Meaning | Fix |
 | --- | --- | --- |
 | Header says `FAKE · NO CALLS` | Live is disabled or incomplete | Check the flag, key, and E.164 test phone; restart the server. |
-| `Waiting for config` in Live settings | The flag is on but readiness is incomplete | Fill the missing server-only value shown by the status cards. |
+| `Waiting for config` in Live mode setup | The flag is on but readiness is incomplete | Fill the missing server-only value shown by the status cards. |
 | Preview blocks the call | Safety validation failed | Check E.164 formatting, region, locale, and task content. |
 | Provider returns an error | CALL-E rejected or could not complete the request | Inspect the sanitized failure message and verify API access, destination support, and request schema. |
 | No cancellation in live mode | The current CALL-E adapter does not claim provider cancellation | Do not present cancellation as a live capability; fake mode supports cancellation for demos. |
@@ -123,7 +126,7 @@ The integration must be tested with a supported destination region and matching 
 - Use a phone number you own or have explicit permission to call.
 - Verify the destination region and locale against the current CALL-E documentation.
 - Confirm the preview and masked number before authorizing.
-- Make exactly one controlled test call before recording any live proof.
+- Make at most one controlled test call before recording any live proof; a live call is optional for the public hackathon demo.
 - Keep the manager approval step enabled; never bypass it for a demo shortcut.
 - Leave the public Vercel deployment in fake-only mode.
 - Reset the local/private state after testing if the environment contains personal contact data.

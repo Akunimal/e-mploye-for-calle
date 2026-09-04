@@ -81,11 +81,14 @@ export interface RuntimeConfig {
   liveReady: boolean;
   apiKeyConfigured: boolean;
   testPhoneConfigured: boolean;
+  testPhoneMasked: string;
+  testRegionConfigured: boolean;
+  testLocaleConfigured: boolean;
+  workspaceConfigured: boolean;
   baseUrl: string;
-  testEmployeeId: string;
   language: string;
   region: string;
   workflows: WorkflowTemplate[];
 }
-export interface AppState { version: number; employees: Employee[]; shifts: Shift[]; jobs: CallJob[]; approvals: Approval[]; events: Event[]; runtime: RuntimeConfig }
+export interface AppState { version: number; executionMode?: "fake" | "live"; employees: Employee[]; shifts: Shift[]; jobs: CallJob[]; approvals: Approval[]; events: Event[]; runtime: RuntimeConfig }
 export interface Preview { workflowType: WorkflowType; workflow: WorkflowTemplate; employee: Pick<Employee, "id" | "name" | "role" | "phone">; shift: Shift; proposedDate: string; proposedTime: string; task: string; provider: string; fakeOutcome?: FakeOutcome; safety: { ok: boolean; reason: string } }

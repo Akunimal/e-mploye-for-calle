@@ -18,9 +18,9 @@ All three templates use the same CALL-E provider interface, idempotency key, eve
 
 ## Demo strategy
 
-The public demo is fake-only and deterministic. It opens with a seeded appointment-rescheduling case and offers a second seeded team-availability case through **Next case**. This gives every judge a repeatable pair of business contexts while keeping the full video focused on one end-to-end flow.
+The public demo is fake-only and deterministic. It opens with a prepared appointment-rescheduling scenario and offers the lead follow-up and shift coordination contexts from the same task catalog. This gives every judge three repeatable business contexts while keeping the video focused on one end-to-end flow.
 
-The lead follow-up template is also available from the task catalog and is covered by automated tests. Judges can exercise any outcome with the fake provider without consuming a CALL-E call.
+All three templates are available from the task catalog and are covered by automated tests. Judges can exercise any outcome with the fake provider without consuming a CALL-E call.
 
 ## Deliberate boundaries
 

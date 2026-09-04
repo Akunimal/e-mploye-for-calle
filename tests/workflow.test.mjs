@@ -13,6 +13,24 @@ const make = () => {
   const provider = new FakeCallProvider({ clock: () => 1000 + tick * 1000, queuedMs: 0, inProgressMs: 0 });
   return { workflow: createWorkflow({ store: new JsonStateStore(path.join(directory, "state.json"), () => ({ version: 1, employees: [{ id: "emp-ana", name: "Ana", role: "Support", phone: "+15550101001", locale: "en-US", region: "MX" }], shifts: [{ id: "shift-1", employeeId: "emp-ana", date: "2026-09-07", startTime: "09:00", endTime: "17:00", role: "Support", status: "scheduled" }], jobs: [], approvals: [], events: [] })), provider, clock }) , provider };
 };
+
+const makeLive = () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "employe-live-workflow-")); dirs.push(directory);
+  const config = {
+    stateFile: path.join(directory, "state.json"), calleApiKey: "server-only-test-key", calleBaseUrl: "https://api.example.test",
+    calleLiveEnabled: true, calleTestPhone: "+14155552671", calleTestRegion: "US", calleTestLocale: "en-US",
+    defaultLanguage: "en-US", defaultRegion: "US",
+  };
+  const requests = [];
+  const provider = {
+    name: "live",
+    async createCall(request) { requests.push(request); return { id: "call_live_test", status: "queued" }; },
+    async getCall(id) { return { id, status: "queued" }; },
+  };
+  const seed = () => ({ version: 3, executionMode: "live", employees: [], shifts: [], jobs: [], approvals: [], events: [] });
+  const workflow = createWorkflow({ store: new JsonStateStore(config.stateFile, seed), provider, config, clock: () => "2026-09-03T10:00:00.000Z" });
+  return { workflow, provider, config, requests };
+};
 afterEach(() => { while (dirs.length) rmSync(dirs.pop(), { recursive: true, force: true }); });
 
 describe("E-mploye workflow engine", () => {
@@ -143,7 +161,7 @@ describe("E-mploye workflow engine", () => {
     expect(() => workflow.apply(secondId)).toThrow("cannot be applied");
   });
 
-  it("retries a failed create with the same idempotency key", async () => {
+  it("requires a fresh approval after a failed provider attempt", async () => {
     let attempts = 0;
     let firstKey = "";
     const provider = {
@@ -164,7 +182,10 @@ describe("E-mploye workflow engine", () => {
     const created = workflow.createJob({ employeeId: "emp-ana", shiftId: "shift-1", fakeOutcome: "confirmed" });
     const jobId = created.jobs[0].id;
     expect((await workflow.approve(jobId)).jobs[0].status).toBe("failed");
-    expect((await workflow.retry(jobId)).jobs[0].providerCallId).toBe("call_fake_retry");
+    const prepared = await workflow.retry(jobId);
+    expect(prepared.jobs[0]).toMatchObject({ status: "awaiting_approval", providerCallId: null });
+    expect(prepared.jobs[0].idempotencyKey).toBe(`employe_${jobId}`);
+    expect((await workflow.approve(jobId)).jobs[0].providerCallId).toBe("call_fake_retry");
     expect(attempts).toBe(2);
   });
 
@@ -189,34 +210,28 @@ describe("E-mploye workflow engine", () => {
     expect(canceled.shifts[0].status).toBe("scheduled");
   });
 
-  it("uses a server-only live test phone override without changing seeded data", async () => {
-    const context = make();
-    const requests = [];
-    context.workflow.config = {
-      ...context.workflow.config,
-      calleApiKey: "server-only-test-key",
-      calleLiveEnabled: true,
-      calleTestPhone: "+14155552671",
-      calleTestEmployeeId: "emp-ana",
-      calleTestRegion: "US",
-      calleTestLocale: "en-US",
-    };
-    context.workflow.provider = {
-      name: "live",
-      async createCall(request) { requests.push(request); return { id: "call_live_test", status: "queued" }; },
-      async getCall(id) { return { id, status: "queued" }; },
-    };
-    const preview = context.workflow.preview({ employeeId: "emp-ana", shiftId: "shift-1" });
+  it("starts live mode empty and only loads the server-authorized test phone", async () => {
+    const context = makeLive();
+    expect(context.workflow.state().employees).toHaveLength(0);
+    const loaded = context.workflow.configureLiveWorkspace({ workflowType: "appointment_management", name: "Ana", phone: "+14155552671", business: "Luna Studio", recordLabel: "Service appointment", date: "2026-09-07", startTime: "09:00", endTime: "10:00", region: "US", locale: "en-US" });
+    expect(loaded).toMatchObject({ executionMode: "live", employees: [{ id: "live-contact", phone: "+141•••••671" }] });
+    const preview = context.workflow.preview({ employeeId: "live-contact", shiftId: "live-record" });
     expect(preview.employee.phone).toBe("+141•••••671");
-    const created = context.workflow.createJob({ employeeId: "emp-ana", shiftId: "shift-1" });
+    const created = context.workflow.createJob({ employeeId: "live-contact", shiftId: "live-record" });
     await context.workflow.approve(created.jobs[0].id);
-    expect(requests[0].body.recipients[0].phones).toEqual(["+14155552671"]);
-    expect(context.workflow.state().employees[0].phone).toBe("+15550101001");
+    expect(context.requests[0].body.recipients[0].phones).toEqual(["+14155552671"]);
+    expect(context.workflow.state().employees[0].phone).toBe("+14155552671");
     expect(context.workflow.response().runtime).toMatchObject({ provider: "live", liveReady: true, region: "US", language: "en-US" });
   });
 
+  it("rejects live workspace data that does not match the authorized destination", () => {
+    const context = makeLive();
+    expect(() => context.workflow.configureLiveWorkspace({ workflowType: "lead_follow_up", name: "Prospect", phone: "+14155550000", business: "Norte Services", recordLabel: "Discovery follow-up", date: "2026-09-08", startTime: "10:00", endTime: "11:00", region: "US", locale: "en-US" })).toThrow("authorized test phone");
+    expect(context.workflow.state().employees).toHaveLength(0);
+  });
+
   it("reads CALL-E attempt transcripts and blocks malformed alternate times", async () => {
-    const context = make();
+    const context = makeLive();
     context.workflow.provider = {
       name: "live",
       async createCall(request) { return { id: "call_live_transcript", status: "queued", request }; },
@@ -230,12 +245,13 @@ describe("E-mploye workflow engine", () => {
         };
       },
     };
-    const created = context.workflow.createJob({ employeeId: "emp-ana", shiftId: "shift-1" });
+    context.workflow.configureLiveWorkspace({ workflowType: "appointment_management", name: "Ana", phone: "+14155552671", business: "Luna Studio", recordLabel: "Service appointment", date: "2026-09-07", startTime: "09:00", endTime: "10:00", region: "US", locale: "en-US" });
+    const created = context.workflow.createJob({ employeeId: "live-contact", shiftId: "live-record" });
     const jobId = created.jobs[0].id;
     await context.workflow.approve(jobId);
     const reviewed = await context.workflow.refresh(jobId);
     expect(reviewed.jobs[0].transcript).toHaveLength(2);
     expect(() => context.workflow.apply(jobId)).toThrow("invalid format");
-    expect(() => context.workflow.preview({ employeeId: "emp-ana", shiftId: "shift-1", proposedDate: "tomorrow" })).toThrow("YYYY-MM-DD");
+    expect(() => context.workflow.preview({ employeeId: "live-contact", shiftId: "live-record", proposedDate: "tomorrow" })).toThrow("YYYY-MM-DD");
   });
 });

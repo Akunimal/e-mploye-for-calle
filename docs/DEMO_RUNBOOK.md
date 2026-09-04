@@ -2,29 +2,29 @@
 
 Public URL: <https://e-mploye-for-calle.vercel.app>
 
-The production deployment is fake-only. It never places a real phone call, and the fake response selector lets a reviewer exercise every outcome without spending CALL-E credits. E-mploye is one virtual employee with three task templates; the public demo uses two seeded cases so every judge sees the same reproducible product surface.
+The production deployment is fake-only. It never places a real phone call, and the fake response selector lets a reviewer exercise every outcome without spending CALL-E credits. E-mploye is one virtual employee with three task templates; the guided demo offers three reproducible scenarios so every judge sees the same product surface.
 
 ## Primary video path: safe reschedule
 
-Use a desktop browser at 100% zoom. The compact desktop layout keeps the E-mploye identity, task catalog, configuration, approval boundary, and call-run panel in the first viewport; the activity log remains below for optional inspection. The **Live settings** button shows the production-ready CALL-E configuration without exposing credentials.
+Use a desktop browser at 100% zoom. The desktop layout keeps the E-mploye identity, task catalog, configuration, approval boundary, and call-run panel visible without an internal scroll. The activity log remains below for optional inspection. The **Live mode setup** button shows the production-ready CALL-E configuration without exposing credentials.
 
-1. Open the public URL and point out `FAKE · NO CALLS` and `1 AI employee` in the header. The footer clarifies that the public demo is sandboxed while the repository includes the controlled real-call path.
+1. Open the public URL and point out `FAKE · NO CALLS` and `1 virtual employee` in the header. The footer clarifies that the public demo is sandboxed while the repository includes the controlled real-call path.
 2. Point out the three task cards: **Appointment desk**, **Lead follow-up**, and **Shift coordination**.
-3. Keep the first seeded case, **Appointment desk** for Luna Studio, with **Requests another time** selected.
+3. Keep the first prepared scenario, **Appointment desk** for Luna Studio, with **Requests another time** selected.
 4. Click **Preview task**. Show the masked phone number, language/region, exact task, and `Safety checks passed`.
-5. Click **Create approval request**. Explain that previewing does not call anyone.
+5. Click **Request approval**. Explain that previewing and requesting approval do not call anyone.
 6. Click **Authorize call**. This is the explicit manager approval boundary.
 7. Point out the **CALL-E execution trace**: approval recorded, sandbox call created, status refreshed, and result received.
 8. Wait for the fake call to complete, or click **Refresh**. The job should reach **Result needs review**.
 9. Show the structured result, confidence, alternate date/time, transcript, evidence, and the trace event that brought it back.
-10. Click **Approve and apply change**. The appointment should become **rescheduled** for `2026-09-08 · 10:00–11:00`.
+10. Click **Approve & apply appointment**. The appointment should become **rescheduled** for `2026-09-08 · 10:00–11:00`.
 11. Point out the final trace event and the human-approved success message.
 
-## Second seeded case
+## Other prepared scenarios
 
-After resetting the demo, click **Next case**. The dashboard loads **Team availability** for Calle Ops with a confirmed fake response. Repeat the same preview → authorize → review → apply sequence. This demonstrates that the same E-mploye identity and approval engine work for a different business context.
+After resetting the demo, choose **Lead follow-up** or **Shift coordination** from the task catalog. The dashboard loads the matching recipient and scheduled context, and the same preview → authorize → review → apply sequence remains available. This demonstrates that the same E-mploye identity and approval engine work across service, sales, and operations contexts.
 
-The **Lead follow-up** card is a third runnable template for exploration. It is covered by automated tests and uses the same fake outcomes.
+The three scenarios use the same fake provider, structured result contract, evidence panel, trace, and human decision gate. Keep the video focused on the appointment flow and use the other cards as proof of the reusable product surface.
 
 ## Optional safety branches
 
@@ -52,7 +52,7 @@ Use **Reset demo** between branches so the screen stays clean.
 
 ## Reset before handing off
 
-Click **Reset demo** before recording the final frame so the reviewer starts from the seeded employee list and empty call history.
+Click **Reset demo** before recording the final frame so the reviewer starts from the prepared employee list and empty call history. The public link always stays in fake mode.
 
 ## Video format
 
@@ -60,17 +60,16 @@ The official rules require a public video under three minutes showing the projec
 
 ## Controlled live verification (local only)
 
-The public Vercel deployment must remain fake-only. For the one live CALL-E proof, configure a local `.env` with a server-side key and one authorized E.164 test number:
+The public Vercel deployment must remain fake-only. A real phone call is not required for the public demo: the repository proves the CALL-E integration with SDK contract tests that mock documented HTTP `201`/`200` responses and never contact a phone. If a private live proof is useful, configure a local `.env` with a server-side key and one authorized E.164 test number:
 
 ```text
 CALLE_API_KEY=your_server_side_key
 CALLE_LIVE_ENABLED=true
 CALLE_TEST_PHONE=your_authorized_e164_test_number
-CALLE_TEST_EMPLOYEE_ID=emp-ana
 CALLE_TEST_REGION=US
 CALLE_TEST_LOCALE=en-US
 ```
 
 Run the local server, verify the preview shows the masked test number, authorize the call once, and inspect the returned status/result before applying any scheduling change. The number must be yours or explicitly authorized and must match one of CALL-E's currently supported recipient regions; Argentina (`AR`) is not currently listed as supported. CALL-E documents international lines as primarily intended for testing and does not document buying a dashboard phone number as a prerequisite for the one-shot Calls API. Never commit this `.env` or put the key in frontend variables.
 
-The local server reports live mode as ready only when `CALLE_LIVE_ENABLED=true`, `CALLE_API_KEY` is present, and `CALLE_TEST_PHONE` is present. The dashboard's **Live settings** panel shows which of these server-side requirements are configured; it does not accept or display the secret itself.
+The local server reports live mode as ready only when all five server-side requirements are present: `CALLE_LIVE_ENABLED=true`, `CALLE_API_KEY`, `CALLE_TEST_PHONE`, `CALLE_TEST_REGION`, and `CALLE_TEST_LOCALE`. The dashboard's **Live mode setup** panel shows which requirements are configured, accepts one masked workspace target, and never accepts or displays the secret itself.

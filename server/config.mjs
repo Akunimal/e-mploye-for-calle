@@ -1,4 +1,4 @@
-import { isE164 } from "./safety-policy.mjs";
+import { isE164, maskPhone } from "./safety-policy.mjs";
 
 const asBoolean = (value, fallback = false) => {
   if (value === undefined) return fallback;
@@ -13,7 +13,6 @@ export const getConfig = (env = process.env) => ({
   calleBaseUrl: (env.CALLE_BASE_URL || "https://api.heycall-e.com").replace(/\/+$/, ""),
   calleLiveEnabled: asBoolean(env.CALLE_LIVE_ENABLED),
   calleTestPhone: String(env.CALLE_TEST_PHONE || "").trim(),
-  calleTestEmployeeId: env.CALLE_TEST_EMPLOYEE_ID || "emp-ana",
   calleTestRegion: env.CALLE_TEST_REGION || "",
   calleTestLocale: env.CALLE_TEST_LOCALE || "",
   defaultLanguage: env.CALLE_DEFAULT_LANGUAGE || "en-US",
@@ -24,11 +23,13 @@ export const liveReadiness = (config) => ({
   requested: Boolean(config.calleLiveEnabled),
   apiKeyConfigured: Boolean(String(config.calleApiKey || "").trim()),
   testPhoneConfigured: isE164(config.calleTestPhone),
+  testRegionConfigured: /^[A-Z]{2}$/.test(String(config.calleTestRegion || "").trim()),
+  testLocaleConfigured: Boolean(String(config.calleTestLocale || "").trim()),
 });
 
 export const isLiveReady = (config) => {
   const readiness = liveReadiness(config);
-  return readiness.requested && readiness.apiKeyConfigured && readiness.testPhoneConfigured;
+  return readiness.requested && readiness.apiKeyConfigured && readiness.testPhoneConfigured && readiness.testRegionConfigured && readiness.testLocaleConfigured;
 };
 
 export const publicRuntimeConfig = (config) => {
@@ -41,8 +42,11 @@ export const publicRuntimeConfig = (config) => {
     liveReady,
     apiKeyConfigured: readiness.apiKeyConfigured,
     testPhoneConfigured: readiness.testPhoneConfigured,
+    testPhoneMasked: readiness.testPhoneConfigured ? maskPhone(config.calleTestPhone) : "",
+    testRegionConfigured: readiness.testRegionConfigured,
+    testLocaleConfigured: readiness.testLocaleConfigured,
+    workspaceConfigured: false,
     baseUrl: config.calleBaseUrl,
-    testEmployeeId: config.calleTestEmployeeId || "",
     language: config.calleTestLocale || config.defaultLanguage,
     region: config.calleTestRegion || config.defaultRegion,
   };

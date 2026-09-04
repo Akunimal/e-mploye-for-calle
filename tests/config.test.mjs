@@ -5,7 +5,6 @@ const env = (overrides = {}) => ({
   CALLE_API_KEY: "server-only-test-key",
   CALLE_LIVE_ENABLED: "true",
   CALLE_TEST_PHONE: "+14155552671",
-  CALLE_TEST_EMPLOYEE_ID: "emp-ana",
   CALLE_TEST_REGION: "US",
   CALLE_TEST_LOCALE: "en-US",
   ...overrides,
@@ -22,6 +21,8 @@ describe("server-side CALL-E runtime configuration", () => {
       liveReady: true,
       apiKeyConfigured: true,
       testPhoneConfigured: true,
+      testRegionConfigured: true,
+      testLocaleConfigured: true,
       region: "US",
       language: "en-US",
     });
@@ -44,5 +45,11 @@ describe("server-side CALL-E runtime configuration", () => {
     const config = getConfig(env({ CALLE_LIVE_ENABLED: "false" }));
     expect(isLiveReady(config)).toBe(false);
     expect(publicRuntimeConfig(config)).toMatchObject({ provider: "fake", liveRequested: false, apiKeyConfigured: true, testPhoneConfigured: true });
+  });
+
+  it("requires an explicit destination region and locale for live mode", () => {
+    const config = getConfig(env({ CALLE_TEST_REGION: "", CALLE_TEST_LOCALE: "" }));
+    expect(isLiveReady(config)).toBe(false);
+    expect(publicRuntimeConfig(config)).toMatchObject({ provider: "fake", testRegionConfigured: false, testLocaleConfigured: false });
   });
 });

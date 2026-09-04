@@ -18,6 +18,7 @@ export const createApi = ({ workflow = createWorkflow() } = {}) => ({
       if (method === "GET" && path === "/health") return json(200, { ok: true, service: "e-mploye-for-calle", runtime: workflow.response().runtime });
       if (method === "GET" && path === "/state") return json(200, workflow.response());
       if (method === "POST" && path === "/reset") return json(200, workflow.reset());
+      if (method === "POST" && path === "/live/workspace") return json(200, workflow.configureLiveWorkspace(body));
       if (method === "POST" && path === "/jobs/preview") return json(200, workflow.preview(body));
       if (method === "POST" && path === "/jobs") return json(201, workflow.createJob(body));
       const match = path.match(/^\/jobs\/([^/]+)\/(approve|refresh|apply|reject|retry|cancel)$/);
