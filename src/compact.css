@@ -1,3 +1,7 @@
+.workflow-panel > .preview-card {
+  display: none;
+}
+
 @media (min-width: 1101px) {
   .content {
     display: grid;
@@ -245,6 +249,27 @@
     margin-top: 0;
     display: flex;
     flex-direction: column;
+  }
+
+  .content > .preview-stage {
+    grid-column: 3;
+    grid-row: 3;
+    z-index: 3;
+    min-height: 0;
+    height: 100%;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .content:has(> .preview-stage) > .job-panel {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .content > .preview-stage > .preview-card {
+    margin: 12px;
   }
 
   .content > .job-panel > .job-detail {
