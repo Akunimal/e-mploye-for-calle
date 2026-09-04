@@ -272,6 +272,29 @@
     margin: 12px;
   }
 
+  .content > .job-panel > .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .content > .job-panel > .empty-state .trace-empty {
+    width: min(100%, 520px);
+    margin: 16px 0 0;
+    padding: 11px 0 0;
+    border: 0;
+    border-top: 1px solid rgba(116, 184, 189, .2);
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .content > .job-panel > .empty-state .trace-head {
+    align-items: center;
+  }
+
   .content > .job-panel > .job-detail {
     display: grid;
     grid-template-columns: minmax(0, .42fr) minmax(0, .58fr);
