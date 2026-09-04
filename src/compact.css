@@ -194,38 +194,51 @@
     height: auto;
     overflow: hidden;
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: 220px minmax(0, 1.05fr) minmax(0, 1fr);
     grid-template-rows: auto auto minmax(0, 1fr);
     align-content: stretch;
   }
 
   .content > .hero,
   .content > .alert,
-  .content > .workflow-gallery,
-  .content > .workspace-grid {
+  .content > .workflow-gallery {
     grid-column: 1;
+    grid-column: 1 / -1;
   }
 
   .content > .workspace-grid {
-    min-height: 0;
-    height: 100%;
-    display: grid;
-    grid-template-columns: 220px minmax(0, 1.05fr) minmax(0, 1fr);
-    gap: 16px;
+    display: contents;
   }
 
-  .content > .workspace-grid > .panel {
+  .content > .workspace-grid > .panel,
+  .content > .job-panel {
     min-height: 0;
     height: 100%;
+    overflow-x: hidden;
     overflow-y: auto;
     scrollbar-width: none;
   }
 
-  .content > .workspace-grid > .panel::-webkit-scrollbar {
+  .content > .workspace-grid > .panel::-webkit-scrollbar,
+  .content > .job-panel::-webkit-scrollbar {
     display: none;
   }
 
-  .content > .workspace-grid .job-panel {
+  .content > .workspace-grid > .roster-panel,
+  .content > .roster-panel {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .content > .workspace-grid > .workflow-panel,
+  .content > .workflow-panel {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
+  .content > .job-panel {
+    grid-column: 3;
+    grid-row: 3;
     margin-top: 0;
   }
 
